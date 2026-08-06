@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from .errors import AppError
+from .system import get_ffmpeg
+
+
+def _run(command: list[str], code: str) -> None:
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr[-1500:])
+    except Exception as exc:
+        raise AppError(code, str(exc)) from exc
+
+
+def extract_audio(video: Path, wav_output: Path) -> Path:
+    _run([get_ffmpeg(), "-y", "-i", str(video), "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(wav_output)], "AU001")
+    return wav_output
+
+
+def _filter_path(path: Path) -> str:
+    value = path.resolve().as_posix().replace("'", r"\'")
+    if len(value) > 1 and value[1] == ":":
+        value = value[0] + r"\:" + value[2:]
+    return value
+
+
+def burn_subtitles(video: Path, subtitle: Path, output: Path) -> Path:
+    style = "FontName=Arial,FontSize=20,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,MarginV=28"
+    video_filter = f"subtitles='{_filter_path(subtitle)}':force_style='{style}'"
+    _run([get_ffmpeg(), "-y", "-i", str(video), "-vf", video_filter, "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(output)], "VID001")
+    return output
