@@ -1,0 +1,75 @@
+name: Tao ban Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build Windows 10-11
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Lay ma nguon
+        uses: actions/checkout@v4
+
+      - name: Cai Python 3.11 64-bit
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+          cache: pip
+
+      - name: Cai thu vien
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Kiem tra ma nguon
+        shell: pwsh
+        run: |
+          python -m compileall -q .
+          python -c "from douyin_translator.errors import AppError; assert 'Cách xử lý' in AppError('DL001', 'test').user_message"
+          python -c "from douyin_translator.subtitles import srt_time; assert srt_time(1.234) == '00:00:01,234'"
+
+      - name: Dong goi ung dung
+        shell: pwsh
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --onedir `
+            --name Douyin_AI_Translator `
+            --collect-all faster_whisper `
+            --collect-all ctranslate2 `
+            --collect-all tokenizers `
+            --collect-all huggingface_hub `
+            --collect-all imageio_ffmpeg `
+            app.py
+
+      - name: Them huong dan
+        shell: pwsh
+        run: |
+          Copy-Item README.md dist/Douyin_AI_Translator/README.txt
+          Copy-Item TIEN_DO.md dist/Douyin_AI_Translator/TIEN_DO.txt
+
+      - name: Nen ban Windows
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/Douyin_AI_Translator/* -DestinationPath Douyin_AI_Translator_Windows_v0.2.1.zip -Force
+
+      - name: Dang tai file Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: Douyin_AI_Translator_Windows_v0.2.1
+          path: Douyin_AI_Translator_Windows_v0.2.1.zip
+          if-no-files-found: error
+          retention-days: 30
