@@ -110,6 +110,17 @@ def _fit_decoded_clip(decoded: Path, output: Path, target_seconds: float) -> Pat
     return output
 
 
+def _validate_timeline_clip(path: Path, target_seconds: float, index: int) -> None:
+    """Không cho phép một câu lồng tiếng tràn đáng kể sang câu kế tiếp."""
+    actual_seconds = _wav_duration(path)
+    allowed_seconds = max(0.65, target_seconds) + 0.08
+    if actual_seconds > allowed_seconds:
+        raise ValueError(
+            f"Câu {index} dài {actual_seconds:.2f} giây, vượt timeline "
+            f"{target_seconds:.2f} giây. Hãy rút gọn bản dịch rồi thử lại."
+        )
+
+
 def _mix_wav_clips(clips: list[tuple[float, Path]], duration: float, output: Path) -> Path:
     rate = 24000
     canvas = np.zeros(max(1, math.ceil(duration * rate)), dtype=np.float32)
@@ -191,8 +202,9 @@ def create_vietnamese_voice(
                 raise ValueError(
                     f"Câu {index} quá dài để lồng tự nhiên trong {target_seconds:.1f} giây"
                 )
-            _fit_decoded_clip(decoded, wav, target_seconds)
-            clips.append((start, wav))
+            fitted = _fit_decoded_clip(decoded, wav, target_seconds)
+            _validate_timeline_clip(fitted, target_seconds, index)
+            clips.append((start, fitted))
             progress(
                 76 + int(6 * index / total),
                 f"Đang lồng giọng cố định: câu {index}/{total}, nhân vật {speaker_id + 1}",

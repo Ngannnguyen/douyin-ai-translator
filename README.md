@@ -1,4 +1,4 @@
-# Douyin AI Translator — Sprint 1
+# Douyin AI Translator v0.6.3 — Sprint 2
 
 Ứng dụng Windows hỗ trợ:
 
@@ -12,6 +12,9 @@
 8. Tự rút gọn câu dịch dài theo ý chính để lồng tiếng tự nhiên, không ép đọc nhanh như máy.
 
 Mọi lỗi chính đều được hiển thị bằng tiếng Việt, gồm nguyên nhân và hướng xử lý.
+
+Phiên bản 0.6.3 bổ sung kiểm tra từng câu lồng tiếng sau khi tạo: nếu âm thanh
+tràn sang câu tiếp theo, ứng dụng dừng và báo rõ câu lỗi thay vì xuất video lệch thoại.
 
 ## Yêu cầu
 
