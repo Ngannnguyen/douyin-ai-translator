@@ -114,7 +114,8 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                     from .voice import create_vietnamese_voice
 
                     tts_voice = create_vietnamese_voice(
-                        [{"start": 0.1, "end": 1.7, "text": "Xin chào, đây là giọng Việt."}],
+                        # Đúng ca lỗi người dùng gặp: timeline chỉ 1,0 giây.
+                        [{"start": 0.1, "end": 1.1, "text": "Xin chào, đây là giọng Việt."}],
                         audio,
                         root / "tts_voice.wav",
                         root,
