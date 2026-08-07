@@ -100,7 +100,20 @@ def burn_subtitles(
         command += ["-vf", video_filter]
     command += [
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-        "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(output),
+        # Windows Media Player/Movies & TV không mở ổn định H.264 10-bit,
+        # yuv444p hoặc file thiếu nhãn avc1. Ép cấu hình MP4 phổ thông nhất.
+        "-pix_fmt", "yuv420p", "-profile:v", "high", "-level:v", "4.1",
+        "-tag:v", "avc1",
+        "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "160k",
+        "-ar", "48000", "-ac", "2",
+        "-movflags", "+faststart", str(output),
     ]
     _run(command, "VID001")
+    # Giải mã lại đầu ra bằng một lượt độc lập. Nếu container/codec bị lỗi,
+    # ứng dụng báo ngay thay vì trả cho người dùng một MP4 không mở được.
+    _run([
+        get_ffmpeg(), "-v", "error", "-xerror", "-i", str(output),
+        "-map", "0:v:0", "-map", "0:a:0?", "-t", "2",
+        "-f", "null", os.devnull,
+    ], "VID001")
     return output

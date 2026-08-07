@@ -114,6 +114,8 @@ def remove_burned_subtitles(
             "-i", str(video),
             "-map", "0:v:0", "-map", "1:a?",
             "-c:v", "libx264", "-preset", "fast", "-crf", "16",
+            "-pix_fmt", "yuv420p", "-profile:v", "high", "-level:v", "4.1",
+            "-tag:v", "avc1",
             "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(output),
         ]
         creationflags = 0
