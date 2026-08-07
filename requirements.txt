@@ -8,4 +8,5 @@ demucs==4.0.1
 torch==2.1.2
 torchaudio==2.1.2
 imageio-ffmpeg==0.5.1
+opencv-python-headless==4.10.0.84
 pyinstaller==6.11.1

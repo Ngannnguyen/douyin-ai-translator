@@ -104,7 +104,13 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                 full_results.append("Dich Trung-Viet: DAT")
 
                 if os.getenv("DOUYIN_TEST_DUBBING") == "1":
+                    import cv2
+                    import numpy as np
+
                     from .separation import separate_background
+                    from .speaker import assign_speakers
+                    from .subtitle_removal import remove_subtitles_from_frame
+                    from .translation import fit_text_to_duration
                     from .voice import create_vietnamese_voice
 
                     tts_voice = create_vietnamese_voice(
@@ -125,9 +131,57 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                     )
                     if not dubbed.is_file() or dubbed.stat().st_size == 0:
                         raise RuntimeError("Kiểm thử lồng tiếng không tạo được video")
+
+                    # Xóa đúng nét chữ, không phủ mờ cả thanh đáy.
+                    frame = np.full((360, 640, 3), 70, dtype=np.uint8)
+                    cv2.putText(
+                        frame, "Chinese subtitle", (150, 310),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                        (255, 255, 255), 2, cv2.LINE_AA,
+                    )
+                    cleaned, mask = remove_subtitles_from_frame(frame)
+                    pixels = int(np.count_nonzero(mask))
+                    if pixels < 50 or pixels > frame.shape[0] * frame.shape[1] * 0.08:
+                        raise RuntimeError("Mask xóa phụ đề phủ sai vùng")
+                    if np.array_equal(frame, cleaned):
+                        raise RuntimeError("Bộ xóa phụ đề không thay đổi nét chữ")
+
+                    # Hai người nói lặp lại phải giữ nguyên mã và loại giọng.
+                    import wave
+                    rate = 16000
+                    timeline = np.arange(rate, dtype=np.float32) / rate
+                    male = (np.sin(2 * np.pi * 120 * timeline) * 12000).astype("<i2")
+                    female = (np.sin(2 * np.pi * 220 * timeline) * 12000).astype("<i2")
+                    speaker_audio = root / "speaker_test.wav"
+                    with wave.open(str(speaker_audio), "wb") as target:
+                        target.setnchannels(1)
+                        target.setsampwidth(2)
+                        target.setframerate(rate)
+                        target.writeframes(np.concatenate([male, female, male, female]).tobytes())
+                    assigned, profiles = assign_speakers([
+                        {"start": 0, "end": 1, "text": "a"},
+                        {"start": 1, "end": 2, "text": "b"},
+                        {"start": 2, "end": 3, "text": "c"},
+                        {"start": 3, "end": 4, "text": "d"},
+                    ], speaker_audio)
+                    if assigned[0]["speaker_id"] != assigned[2]["speaker_id"]:
+                        raise RuntimeError("Giọng nam bị đổi giữa video")
+                    if assigned[1]["speaker_id"] != assigned[3]["speaker_id"]:
+                        raise RuntimeError("Giọng nữ bị đổi giữa video")
+                    if profiles[assigned[0]["speaker_id"]].voice == profiles[assigned[1]["speaker_id"]].voice:
+                        raise RuntimeError("Không phân biệt được giọng nam và nữ")
+
+                    shortened = fit_text_to_duration(
+                        "Có thể nói rằng sản phẩm này thực sự rất tiện lợi và giúp tiết kiệm rất nhiều thời gian trong cuộc sống hàng ngày",
+                        2.0,
+                    )
+                    if len(shortened.split()) > 7:
+                        raise RuntimeError("Câu dài chưa được rút gọn theo thời lượng")
                     full_results.append("Giong Viet AI: DAT")
                     full_results.append("Tach thoai Trung: DAT")
-                    full_results.append("Lam mo phu de Trung: DAT")
+                    full_results.append("Xoa phu de Trung: DAT")
+                    full_results.append("Giong nhan vat co dinh: DAT")
+                    full_results.append("Dich rut gon theo thoi luong: DAT")
 
                 e2e_url = os.getenv("DOUYIN_E2E_URL", "").strip()
                 if e2e_url:
@@ -160,7 +214,7 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                 f"Phien ban: {__version__}",
                 "Cookie trinh duyet: KHONG DOC",
                 "FFmpeg va phu de: DAT",
-                "Lam mo phu de va tron am thanh: DAT",
+                "Xoa phu de va tron am thanh: DAT",
                 f"So luong CPU toi da: {safe_thread_count()}",
                 f"RAM: tong {total_gb:.1f} GB, kha dung {available_gb:.1f} GB",
                 *full_results,

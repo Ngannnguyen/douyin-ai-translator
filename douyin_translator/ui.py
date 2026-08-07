@@ -32,7 +32,7 @@ class TranslatorApp:
         frame = ttk.Frame(self.root, padding=22)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, text=f"DOUYIN AI TRANSLATOR  v{__version__}", font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        ttk.Label(frame, text="Dịch, làm mờ phụ đề Trung và lồng tiếng Việt tự động", font=("Segoe UI", 11)).pack(anchor="w", pady=(2, 22))
+        ttk.Label(frame, text="Dịch, xóa phụ đề Trung và lồng tiếng Việt tự nhiên", font=("Segoe UI", 11)).pack(anchor="w", pady=(2, 22))
 
         ttk.Label(frame, text="Tệp video trong máy (khuyên dùng) hoặc liên kết:").pack(anchor="w")
         source_row = ttk.Frame(frame)
@@ -63,7 +63,7 @@ class TranslatorApp:
         ).pack(anchor="w", pady=2)
         ttk.Checkbutton(
             mode_frame,
-            text="Làm mờ hẳn phụ đề Trung ở đáy và ghi đè phụ đề Việt",
+            text="Xóa riêng nét phụ đề Trung và thay bằng phụ đề Việt (không tạo thanh mờ)",
             variable=self.hide_chinese_subtitles,
         ).pack(anchor="w", pady=(5, 0))
 
@@ -78,7 +78,7 @@ class TranslatorApp:
         ttk.Button(action_row, text="Mở thư mục kết quả", command=self._open_output).pack(side="left", padx=10, ipady=7)
         ttk.Button(action_row, text="Kiểm tra máy", command=self._check_machine).pack(side="left", ipady=7)
         ttk.Label(frame, text="Nếu ứng dụng mở Chrome riêng: không cần đăng nhập, không đóng cửa sổ; ứng dụng sẽ tự đóng.", foreground="#555").pack(anchor="w", pady=(24, 0))
-        ttk.Label(frame, text="Tự chọn giọng nam, nữ hoặc em bé. Chế độ 2 lần đầu sẽ tải mô hình tách giọng AI.", foreground="#666").pack(anchor="w", pady=(4, 0))
+        ttk.Label(frame, text="Mỗi nhân vật giữ một giọng cố định; câu dài được rút ý để khớp hình tự nhiên.", foreground="#666").pack(anchor="w", pady=(4, 0))
 
     def _choose_video(self) -> None:
         selected = filedialog.askopenfilename(filetypes=[("Video", "*.mp4 *.mov *.mkv *.avi *.webm"), ("Tất cả tệp", "*.*")])

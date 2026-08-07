@@ -1,11 +1,32 @@
 from __future__ import annotations
 
+import os
+import sys
 import wave
 from pathlib import Path
 
 import numpy as np
 
 from .errors import AppError
+
+
+_AI_SINKS: list[object] = []
+
+
+def ensure_writable_standard_streams() -> None:
+    """Khôi phục stdout/stderr bị PyInstaller --windowed đặt thành None.
+
+    Torch/Demucs/tqdm ghi tiến độ tải model vào các luồng này. Nếu chúng là
+    None, lần tải model đầu tiên sẽ lỗi: 'NoneType' object has no attribute
+    'write'. Giữ sink mở suốt vòng đời ứng dụng để thư viện không ghi vào
+    file đã đóng.
+    """
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name, None)
+        if stream is None or not callable(getattr(stream, "write", None)):
+            sink = open(os.devnull, "w", encoding="utf-8", buffering=1)
+            setattr(sys, name, sink)
+            _AI_SINKS.append(sink)
 
 
 def separate_background(
@@ -15,6 +36,10 @@ def separate_background(
 ) -> Path:
     """Tách giọng nói khỏi nhạc và âm thanh bối cảnh bằng Demucs."""
     try:
+        # Chạy trước khi import torch/demucs vì tqdm có thể chụp stderr
+        # ngay trong quá trình import hoặc tải model lần đầu.
+        ensure_writable_standard_streams()
+
         import torch
         from demucs.apply import apply_model
         from demucs.audio import convert_audio
@@ -100,3 +125,4 @@ def separate_background(
         raise
     except Exception as exc:
         raise AppError("SEP001", str(exc)) from exc
+

@@ -9,7 +9,15 @@ import numpy as np
 
 from .errors import AppError
 from .media import _run
+from .speaker import (
+    VoiceProfile,
+    assign_speakers,
+    emotion_rate,
+    estimate_pitch,
+    read_mono_wav,
+)
 from .system import get_ffmpeg
+from .translation import shorten_text
 
 
 FEMALE_VOICE = "vi-VN-HoaiMyNeural"
@@ -18,49 +26,15 @@ CHILD_VOICE = "vi-VN-child"
 
 
 def voice_settings(voice: str) -> tuple[str, str, str]:
-    """Ánh xạ preset tự chọn sang giọng/rate/pitch mà Edge TTS hỗ trợ."""
     if voice == CHILD_VOICE:
-        return FEMALE_VOICE, "+12%", "+35Hz"
+        return FEMALE_VOICE, "+8%", "+35Hz"
     if voice not in {FEMALE_VOICE, MALE_VOICE}:
         raise ValueError(f"Giọng đọc không hợp lệ: {voice}")
     return voice, "+0%", "+0Hz"
 
 
 def _read_mono_wav(audio: Path) -> tuple[np.ndarray, int]:
-    with wave.open(str(audio), "rb") as source:
-        channels = source.getnchannels()
-        rate = source.getframerate()
-        width = source.getsampwidth()
-        if width != 2:
-            raise ValueError("Âm thanh phân tích phải là PCM 16-bit")
-        samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
-    if channels > 1:
-        samples = samples.reshape(-1, channels).mean(axis=1)
-    return samples.astype(np.float32) / 32768.0, rate
-
-
-def estimate_pitch(samples: np.ndarray, sample_rate: int) -> float:
-    """Ước lượng cao độ lời nói; trả 0 khi đoạn quá ngắn hoặc không rõ giọng."""
-    frame_size = max(256, int(sample_rate * 0.04))
-    hop = max(128, frame_size // 2)
-    min_lag = max(1, int(sample_rate / 350))
-    max_lag = min(frame_size - 2, int(sample_rate / 75))
-    pitches: list[float] = []
-    for start in range(0, max(0, len(samples) - frame_size), hop):
-        frame = samples[start:start + frame_size]
-        frame = frame - float(frame.mean())
-        energy = float(np.sqrt(np.mean(frame * frame)))
-        if energy < 0.01:
-            continue
-        frame *= np.hanning(len(frame))
-        correlation = np.correlate(frame, frame, mode="full")[frame_size - 1:]
-        search = correlation[min_lag:max_lag + 1]
-        if not len(search) or correlation[0] <= 0:
-            continue
-        lag = min_lag + int(np.argmax(search))
-        if correlation[lag] / correlation[0] >= 0.22:
-            pitches.append(sample_rate / lag)
-    return float(np.median(pitches)) if pitches else 0.0
+    return read_mono_wav(audio)
 
 
 def choose_voice(samples: np.ndarray, sample_rate: int) -> str:
@@ -71,32 +45,37 @@ def choose_voice(samples: np.ndarray, sample_rate: int) -> str:
 
 
 def tempo_filters(source_seconds: float, target_seconds: float) -> str:
-    ratio = max(0.25, min(4.0, source_seconds / max(0.25, target_seconds)))
-    factors: list[float] = []
-    while ratio > 2.0:
-        factors.append(2.0)
-        ratio /= 2.0
-    while ratio < 0.5:
-        factors.append(0.5)
-        ratio /= 0.5
-    factors.append(ratio)
-    return ",".join(f"atempo={factor:.5f}" for factor in factors)
+    # Không bao giờ ép đọc nhanh/chậm quá 12%; câu dài phải được rút gọn.
+    ratio = max(0.92, min(1.12, source_seconds / max(0.25, target_seconds)))
+    return f"atempo={ratio:.5f}"
 
 
-async def _save_tts(text: str, voice: str, output: Path) -> None:
+def _percent(value: int) -> str:
+    value = max(-12, min(12, int(value)))
+    return f"{value:+d}%"
+
+
+def _pitch(value: int) -> str:
+    value = max(-40, min(40, int(value)))
+    return f"{value:+d}Hz"
+
+
+async def _save_tts(
+    text: str,
+    profile: VoiceProfile,
+    output: Path,
+    rate_delta: int = 0,
+) -> None:
     import edge_tts
 
-    # Edge TTS chưa có giọng trẻ em tiếng Việt riêng. Tạo preset trẻ em từ
-    # Hoài My bằng cách tăng cao độ và nhịp nói, sau đó vẫn căn lại timeline.
-    edge_voice, rate, pitch = voice_settings(voice)
     last_error: Exception | None = None
     for attempt in range(3):
         try:
             await edge_tts.Communicate(
                 text=text,
-                voice=edge_voice,
-                rate=rate,
-                pitch=pitch,
+                voice=profile.voice,
+                rate=_percent(profile.rate_percent + rate_delta),
+                pitch=_pitch(profile.pitch_hz),
             ).save(str(output))
             if output.is_file() and output.stat().st_size > 0:
                 return
@@ -112,16 +91,22 @@ def _wav_duration(path: Path) -> float:
         return source.getnframes() / max(1, source.getframerate())
 
 
-def _fit_clip(mp3: Path, output: Path, target_seconds: float) -> Path:
-    decoded = output.with_name(output.stem + "_raw.wav")
-    _run([get_ffmpeg(), "-y", "-i", str(mp3), "-ac", "1", "-ar", "24000", "-c:a", "pcm_s16le", str(decoded)], "VOICE001")
-    filters = tempo_filters(_wav_duration(decoded), target_seconds)
+def _decode_mp3(mp3: Path, output: Path) -> Path:
     _run([
-        get_ffmpeg(), "-y", "-i", str(decoded), "-af", filters,
-        "-t", f"{max(0.25, target_seconds):.3f}", "-ac", "1", "-ar", "24000",
+        get_ffmpeg(), "-y", "-i", str(mp3), "-ac", "1", "-ar", "24000",
         "-c:a", "pcm_s16le", str(output),
     ], "VOICE001")
-    decoded.unlink(missing_ok=True)
+    return output
+
+
+def _fit_decoded_clip(decoded: Path, output: Path, target_seconds: float) -> Path:
+    source_seconds = _wav_duration(decoded)
+    filters = tempo_filters(source_seconds, target_seconds)
+    _run([
+        get_ffmpeg(), "-y", "-i", str(decoded), "-af", filters,
+        "-t", f"{max(0.65, target_seconds):.3f}", "-ac", "1", "-ar", "24000",
+        "-c:a", "pcm_s16le", str(output),
+    ], "VOICE001")
     return output
 
 
@@ -160,26 +145,53 @@ def create_vietnamese_voice(
             raise ValueError("Không có lời dịch để tạo giọng Việt")
         output.parent.mkdir(parents=True, exist_ok=True)
         work_dir.mkdir(parents=True, exist_ok=True)
-        source_samples, sample_rate = _read_mono_wav(source_audio)
+        source_samples, _ = _read_mono_wav(source_audio)
         if not len(source_samples):
             raise ValueError("Âm thanh nguồn rỗng")
+
+        assigned, profiles = assign_speakers(translated, source_audio)
+        translated[:] = assigned
         clips: list[tuple[float, Path]] = []
         total = max(1, len(translated))
         for index, segment in enumerate(translated, start=1):
             start = max(0.0, float(segment["start"]))
-            end = max(start + 0.25, float(segment["end"]))
-            left = round(start * sample_rate)
-            right = round(end * sample_rate)
-            voice = choose_voice(source_samples[left:right], sample_rate)
-            mp3 = work_dir / f"voice_{index:04}.mp3"
-            wav = work_dir / f"voice_{index:04}.wav"
+            end = max(start + 0.65, float(segment["end"]))
+            target_seconds = end - start
+            speaker_id = int(segment["speaker_id"])
+            profile = profiles[speaker_id]
             text = str(segment["text"]).strip()
             if not text:
                 raise ValueError(f"Đoạn lồng tiếng số {index} không có nội dung")
-            asyncio.run(_save_tts(text, voice, mp3))
-            _fit_clip(mp3, wav, end - start)
+
+            mp3 = work_dir / f"voice_{index:04}.mp3"
+            decoded = work_dir / f"voice_{index:04}_raw.wav"
+            wav = work_dir / f"voice_{index:04}.wav"
+            # Nếu TTS vẫn dài, rút ý rồi tạo lại. Không ép atempo cực đoan.
+            for rewrite_attempt in range(4):
+                mp3.unlink(missing_ok=True)
+                decoded.unlink(missing_ok=True)
+                asyncio.run(_save_tts(text, profile, mp3, emotion_rate(text)))
+                _decode_mp3(mp3, decoded)
+                spoken_seconds = _wav_duration(decoded)
+                if spoken_seconds <= target_seconds * 1.12:
+                    break
+                ratio = target_seconds * 1.05 / max(0.25, spoken_seconds)
+                budget = max(3, int(len(text.split()) * ratio))
+                shorter = shorten_text(text, budget)
+                if shorter == text:
+                    shorter = shorten_text(text, max(3, budget - 1))
+                text = shorter
+                segment["text"] = text
+            if _wav_duration(decoded) > target_seconds * 1.25:
+                raise ValueError(
+                    f"Câu {index} quá dài để lồng tự nhiên trong {target_seconds:.1f} giây"
+                )
+            _fit_decoded_clip(decoded, wav, target_seconds)
             clips.append((start, wav))
-            progress(76 + int(8 * index / total), f"Đang tạo giọng Việt: {index}/{total} đoạn")
+            progress(
+                76 + int(6 * index / total),
+                f"Đang lồng giọng cố định: câu {index}/{total}, nhân vật {speaker_id + 1}",
+            )
         duration = max(float(item["end"]) for item in translated) + 0.5
         return _mix_wav_clips(clips, duration, output)
     except AppError:

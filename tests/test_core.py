@@ -265,7 +265,7 @@ def test_auto_voice_uses_original_pitch():
 def test_voice_presets_include_male_female_and_child():
     assert voice_settings(MALE_VOICE) == (MALE_VOICE, "+0%", "+0Hz")
     assert voice_settings(FEMALE_VOICE) == (FEMALE_VOICE, "+0%", "+0Hz")
-    assert voice_settings(CHILD_VOICE) == (FEMALE_VOICE, "+12%", "+35Hz")
+    assert voice_settings(CHILD_VOICE) == (FEMALE_VOICE, "+8%", "+35Hz")
 
 
 def test_empty_translation_and_voice_fail_cleanly(tmp_path: Path):
@@ -286,13 +286,13 @@ def test_voice_tempo_filter_stays_in_ffmpeg_range():
     assert all(0.5 <= value <= 2.0 for value in values)
 
 
-def test_subtitle_filter_blurs_chinese_caption_area(tmp_path: Path):
+def test_subtitle_filter_never_blurs_a_bottom_bar(tmp_path: Path):
     subtitle = tmp_path / "phu de vi.srt"
     subtitle.write_text("", encoding="utf-8")
     video_filter = media.subtitle_video_filter(subtitle, hide_original=True)
-    assert "crop=iw:ih*0.30" in video_filter
-    assert "boxblur=20:3" in video_filter
-    assert "drawbox=" in video_filter
+    assert "crop=" not in video_filter
+    assert "boxblur" not in video_filter
+    assert "drawbox=" not in video_filter
     assert "subtitles=" in video_filter
 
 

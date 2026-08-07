@@ -54,13 +54,13 @@ def process(
         segments = transcribe(audio, choose_model(), progress)
         translated = translate_segments(segments, progress)
         stem = video.stem[:80] or "video"
-        subtitle_temp = write_srt(translated, work_dir / "phu_de_vi.srt")
+
         voice_audio = None
         background_audio = None
         if audio_mode in {"dual", "replace"}:
             from .voice import create_vietnamese_voice
 
-            progress(76, "Đang tạo giọng lồng tiếng Việt...")
+            progress(76, "Đang nhận diện nhân vật và tạo giọng Việt cố định...")
             voice_audio = create_vietnamese_voice(
                 translated, audio, work_dir / "long_tieng_vi.wav", work_dir, progress
             )
@@ -69,16 +69,26 @@ def process(
 
             source_mix = extract_audio_mix(video, work_dir / "am_thanh_stereo.wav")
             background_audio = separate_background(
-                source_mix,
-                work_dir / "nhac_va_boi_canh.wav",
-                progress,
+                source_mix, work_dir / "nhac_va_boi_canh.wav", progress
             )
-        progress(86, "Đang che phụ đề Trung và chèn phụ đề Việt..." if hide_chinese_subtitles else "Đang chèn phụ đề vào video...")
+
+        # create_vietnamese_voice có thể rút gọn thêm câu theo thời lượng.
+        # Vì vậy chỉ tạo SRT sau khi lồng tiếng để chữ và giọng luôn giống nhau.
+        subtitle_temp = write_srt(translated, work_dir / "phu_de_vi.srt")
+        render_source = video
+        if hide_chinese_subtitles:
+            from .subtitle_removal import remove_burned_subtitles
+
+            progress(82, "Đang xóa riêng nét phụ đề Trung và tái tạo nền...")
+            render_source = remove_burned_subtitles(
+                video, work_dir / "video_da_xoa_chu_trung.mp4", progress
+            )
+        progress(87, "Đang ghi phụ đề Việt và hoàn thiện âm thanh...")
         rendered_temp = burn_subtitles(
-            video,
+            render_source,
             subtitle_temp,
             work_dir / "video_tieng_viet.mp4",
-            hide_original=hide_chinese_subtitles,
+            hide_original=False,
             voice_audio=voice_audio,
             background_audio=background_audio,
         )
