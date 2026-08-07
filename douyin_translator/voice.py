@@ -167,7 +167,7 @@ def create_vietnamese_voice(
             decoded = work_dir / f"voice_{index:04}_raw.wav"
             wav = work_dir / f"voice_{index:04}.wav"
             # Nếu TTS vẫn dài, rút ý rồi tạo lại. Không ép atempo cực đoan.
-            for rewrite_attempt in range(4):
+            for rewrite_attempt in range(6):
                 mp3.unlink(missing_ok=True)
                 decoded.unlink(missing_ok=True)
                 asyncio.run(_save_tts(text, profile, mp3, emotion_rate(text)))
@@ -176,10 +176,15 @@ def create_vietnamese_voice(
                 if spoken_seconds <= target_seconds * 1.12:
                     break
                 ratio = target_seconds * 1.05 / max(0.25, spoken_seconds)
-                budget = max(3, int(len(text.split()) * ratio))
+                budget = max(1, int(len(text.split()) * ratio))
                 shorter = shorten_text(text, budget)
                 if shorter == text:
-                    shorter = shorten_text(text, max(3, budget - 1))
+                    shorter = shorten_text(text, max(1, budget - 1))
+                # Khi phép ước lượng thời lượng làm tròn về cùng một ngân
+                # sách, vẫn giảm dần từng từ ở lần thử kế tiếp. Nhờ vậy câu
+                # 1–2 giây không bị kẹt ở tối thiểu ba từ rồi báo lỗi.
+                if shorter == text and len(text.split()) > 1:
+                    shorter = shorten_text(text, len(text.split()) - 1)
                 text = shorter
                 segment["text"] = text
             if _wav_duration(decoded) > target_seconds * 1.25:
