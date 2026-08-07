@@ -9,6 +9,14 @@ on:
       - "douyin_translator/**"
       - "tests/**"
       - ".github/workflows/UPDATE_BUILD_V061_NATURAL_DUBBING_TEST_FIX.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "requirements.txt"
+      - "douyin_translator/**"
+      - "tests/**"
+      - ".github/workflows/UPDATE_BUILD_V061_NATURAL_DUBBING_TEST_FIX.yml"
   workflow_dispatch:
 
 permissions:
