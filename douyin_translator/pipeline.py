@@ -60,7 +60,7 @@ def process(
         if audio_mode in {"dual", "replace"}:
             from .voice import create_vietnamese_voice
 
-            progress(76, "Đang nhận diện nhân vật và tạo giọng Việt cố định...")
+            progress(76, "Đang tạo giọng kể nữ vui tươi, rõ nghĩa...")
             voice_audio = create_vietnamese_voice(
                 translated, audio, work_dir / "long_tieng_vi.wav", work_dir, progress
             )
@@ -72,23 +72,17 @@ def process(
                 source_mix, work_dir / "nhac_va_boi_canh.wav", progress
             )
 
-        # create_vietnamese_voice có thể rút gọn thêm câu theo thời lượng.
-        # Vì vậy chỉ tạo SRT sau khi lồng tiếng để chữ và giọng luôn giống nhau.
+        # Giọng kể có thể nới timeline để giữ trọn ý, vì vậy tạo SRT sau cùng.
         subtitle_temp = write_srt(translated, work_dir / "phu_de_vi.srt")
         render_source = video
         if hide_chinese_subtitles:
-            from .subtitle_removal import remove_burned_subtitles
-
-            progress(82, "Đang xóa riêng nét phụ đề Trung và tái tạo nền...")
-            render_source = remove_burned_subtitles(
-                video, work_dir / "video_da_xoa_chu_trung.mp4", progress
-            )
+            progress(82, "Đang che kín phụ đề Trung bằng bảng chú thích Việt...")
         progress(87, "Đang ghi phụ đề Việt và hoàn thiện âm thanh...")
         rendered_temp = burn_subtitles(
             render_source,
             subtitle_temp,
             work_dir / "video_tieng_viet.mp4",
-            hide_original=False,
+            hide_original=hide_chinese_subtitles,
             voice_audio=voice_audio,
             background_audio=background_audio,
         )
