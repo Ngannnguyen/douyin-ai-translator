@@ -45,20 +45,17 @@ def is_douyin_url(value: str) -> bool:
 
 
 def download_options(source: str, output_template: str) -> dict:
-    options = {
+    return {
         "outtmpl": output_template,
         "format": "bv*+ba/b",
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
+        "socket_timeout": 20,
+        "retries": 2,
+        "fragment_retries": 2,
     }
-    # Douyin thường yêu cầu cookie mới của một trình duyệt thật. Dùng Edge để
-    # người dùng vẫn có thể mở Chrome làm việc trong lúc ứng dụng tải video.
-    # Cookie chỉ được yt-dlp đọc trong lúc tải, không ghi ra tệp hay hiển thị.
-    if is_douyin_url(source):
-        options["cookiesfrombrowser"] = ("edge",)
-    return options
 
 
 def obtain_video(source: str, work_dir: Path, progress) -> Path:
@@ -69,12 +66,12 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
         path = Path(source)
         if not path.is_file():
             raise AppError("IN002", source)
+        size_gb = path.stat().st_size / (1024 ** 3)
+        if size_gb > 2:
+            raise AppError("IN003", f"Dung lượng tệp: {size_gb:.2f} GB")
         return path.resolve()
 
-    if is_douyin_url(source):
-        progress(8, "Đang tải video Douyin bằng phiên Microsoft Edge...")
-    else:
-        progress(8, "Đang tải video từ liên kết...")
+    progress(8, "Đang tải video từ liên kết ở chế độ an toàn...")
     try:
         import yt_dlp
 
@@ -93,9 +90,6 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
         raise
     except Exception as exc:
         detail = str(exc)
-        if is_douyin_url(source) and any(
-            marker in detail.lower()
-            for marker in ("cookie", "dpapi", "decrypt", "edge")
-        ):
-            raise AppError("DL002", detail) from exc
+        if is_douyin_url(source) and "cookie" in detail.lower():
+            raise AppError("DL003", detail) from exc
         raise AppError("DL001", str(exc)) from exc

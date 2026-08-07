@@ -4,6 +4,7 @@ from douyin_translator.errors import AppError
 from douyin_translator.subtitles import srt_time, write_srt
 from douyin_translator.diagnostics import CheckItem, DiagnosticReport
 from douyin_translator.downloader import download_options, extract_url, normalize_douyin_url
+from douyin_translator.pipeline import unique_path
 
 
 def test_srt_time():
@@ -49,12 +50,13 @@ def test_extract_url_from_share_text():
     assert extract_url(shared) == "https://v.douyin.com/abc123/"
 
 
-def test_douyin_uses_edge_cookies():
+def test_safe_mode_never_reads_browser_cookies():
     options = download_options(
         "https://www.douyin.com/video/7552467869231254847",
         "video_goc.%(ext)s",
     )
-    assert options["cookiesfrombrowser"] == ("edge",)
+    assert "cookiesfrombrowser" not in options
+    assert "cookiefile" not in options
 
 
 def test_other_sites_do_not_read_browser_cookies():
@@ -63,6 +65,12 @@ def test_other_sites_do_not_read_browser_cookies():
 
 
 def test_cookie_error_is_in_vietnamese():
-    message = AppError("DL002", "Fresh cookies are needed").user_message
-    assert "Microsoft Edge" in message
-    assert "đóng hoàn toàn Edge" in message
+    message = AppError("DL003", "Fresh cookies are needed").user_message
+    assert "không đọc cookie" in message
+    assert "CHỌN VIDEO" in message
+
+
+def test_unique_path_does_not_overwrite(tmp_path: Path):
+    existing = tmp_path / "ket_qua.mp4"
+    existing.write_bytes(b"old")
+    assert unique_path(existing).name == "ket_qua_2.mp4"

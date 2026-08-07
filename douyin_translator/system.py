@@ -28,6 +28,16 @@ def get_ffmpeg() -> str:
 
 
 def choose_model() -> str:
+    total_gb, available_gb = memory_info_gb()
+    return "base" if total_gb >= 16 and available_gb >= 8 else "tiny"
+
+
+def safe_thread_count() -> int:
+    total_gb, available_gb = memory_info_gb()
+    return 4 if total_gb >= 24 and available_gb >= 8 else 2
+
+
+def memory_info_gb() -> tuple[float, float]:
     try:
         import ctypes
 
@@ -40,11 +50,17 @@ def choose_model() -> str:
 
         status = MemoryStatus()
         status.length = ctypes.sizeof(MemoryStatus)
-        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status))
-        ram_gb = status.total_phys / (1024 ** 3)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            raise OSError("Không đọc được trạng thái bộ nhớ")
+        return status.total_phys / (1024 ** 3), status.avail_phys / (1024 ** 3)
     except Exception:
-        ram_gb = 8
-    return "tiny" if ram_gb < 6 else "base"
+        return 8.0, 4.0
+
+
+def validate_resources() -> None:
+    _, available_gb = memory_info_gb()
+    if available_gb < 2:
+        raise AppError("SYS005", f"RAM khả dụng: {available_gb:.1f} GB")
 
 
 def validate_output_dir(output_dir: Path) -> None:

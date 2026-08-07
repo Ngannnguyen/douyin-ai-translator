@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.2.4 — Sprint 1
+## Mốc hiện tại: v0.3.0 Safe Mode — Sprint 1
 
 Ngày cập nhật: 07/08/2026
 
@@ -20,8 +20,12 @@ Ngày cập nhật: 07/08/2026
 - GitHub Actions build tự động trên máy Windows 64-bit.
 - Tự chuyển link trang cá nhân Douyin có `modal_id` hoặc `vid` thành link video trực tiếp.
 - Nhận cả đoạn văn bản chia sẻ Douyin và tự lấy URL đầu tiên.
-- Dùng cookie Microsoft Edge khi Douyin yêu cầu xác minh, để người dùng vẫn có thể mở Chrome làm việc.
-- Thêm mã lỗi DL002 bằng tiếng Việt và hướng dẫn làm mới cookie an toàn.
+- Loại bỏ hoàn toàn chức năng đọc cookie Chrome/Edge.
+- Không yêu cầu đóng trình duyệt và không can thiệp tiến trình Windows.
+- Giới hạn Whisper và FFmpeg ở tối đa 2 luồng CPU; FFmpeg chạy ưu tiên thấp.
+- Kiểm tra RAM khả dụng trước khi xử lý và dừng an toàn nếu còn dưới 2 GB.
+- Giới hạn video tối đa 2 GB, không ghi đè kết quả cũ và dọn tệp tạm khi lỗi.
+- Thêm self-test tạo video mẫu, tách âm thanh và chèn phụ đề ngay trên file EXE Windows.
 
 ### Kết quả kiểm tra hiện tại
 

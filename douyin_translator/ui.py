@@ -32,7 +32,7 @@ class TranslatorApp:
         ttk.Label(frame, text=f"DOUYIN AI TRANSLATOR  v{__version__}", font=("Segoe UI", 20, "bold")).pack(anchor="w")
         ttk.Label(frame, text="Dịch tiếng Trung → tiếng Việt và chèn phụ đề tự động", font=("Segoe UI", 11)).pack(anchor="w", pady=(2, 22))
 
-        ttk.Label(frame, text="Liên kết video hoặc tệp trong máy:").pack(anchor="w")
+        ttk.Label(frame, text="Tệp video trong máy (khuyên dùng) hoặc liên kết:").pack(anchor="w")
         source_row = ttk.Frame(frame)
         source_row.pack(fill="x", pady=(6, 15))
         ttk.Entry(source_row, textvariable=self.source).pack(side="left", fill="x", expand=True)
@@ -54,7 +54,8 @@ class TranslatorApp:
         self.start_button.pack(side="left", ipadx=20, ipady=7)
         ttk.Button(action_row, text="Mở thư mục kết quả", command=self._open_output).pack(side="left", padx=10, ipady=7)
         ttk.Button(action_row, text="Kiểm tra máy", command=self._check_machine).pack(side="left", ipady=7)
-        ttk.Label(frame, text="Lưu ý: lần đầu nhận diện sẽ tải mô hình AI. Chỉ sử dụng video bạn có quyền xử lý.", foreground="#666").pack(anchor="w", pady=(28, 0))
+        ttk.Label(frame, text="Chế độ an toàn: không đọc cookie, không tắt Chrome/Edge và không can thiệp tiến trình Windows.", foreground="#555").pack(anchor="w", pady=(24, 0))
+        ttk.Label(frame, text="Lần đầu nhận diện sẽ tải mô hình AI. Chỉ sử dụng video bạn có quyền xử lý.", foreground="#666").pack(anchor="w", pady=(4, 0))
 
     def _choose_video(self) -> None:
         selected = filedialog.askopenfilename(filetypes=[("Video", "*.mp4 *.mov *.mkv *.avi *.webm"), ("Tất cả tệp", "*.*")])

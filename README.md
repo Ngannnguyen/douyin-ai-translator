@@ -31,11 +31,18 @@ Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu h
 
 ### Khi tải video Douyin
 
-- Mở Microsoft Edge, truy cập `douyin.com` và xem một video ít nhất một lần.
-- Đóng hoàn toàn Edge rồi mới bấm **DỊCH VIDEO** trong ứng dụng.
-- Bạn vẫn có thể để Google Chrome mở và sử dụng bình thường.
-- Ứng dụng chỉ yêu cầu yt-dlp dùng phiên Edge khi tải liên kết Douyin; không xuất hoặc lưu cookie thành tệp.
-- Tuyệt đối không gửi cookie trình duyệt cho người khác.
+- Bản v0.3.0 chạy ở chế độ an toàn: không đọc cookie và không yêu cầu đóng Chrome hoặc Edge.
+- Liên kết công khai vẫn được thử tải trực tiếp với thời gian chờ và số lần thử giới hạn.
+- Nếu Douyin yêu cầu cookie, ứng dụng dừng và hướng dẫn tải video hợp pháp về máy rồi dùng nút **Chọn video**.
+- Ứng dụng không tự tắt trình duyệt, không kết thúc tiến trình và không thay đổi cài đặt Windows.
+
+### Giới hạn tài nguyên an toàn
+
+- Whisper dùng tối đa 2 luồng CPU và 1 worker.
+- FFmpeg chạy mức ưu tiên thấp trên Windows, tối đa 2 luồng và có thời gian chờ.
+- Máy còn dưới 2 GB RAM khả dụng sẽ được cảnh báo và dừng trước khi xử lý.
+- Video lớn hơn 2 GB bị từ chối để tránh quá tải.
+- Kết quả cũ không bị ghi đè và tệp tạm được dọn sau mỗi lượt xử lý.
 
 ## Tạo file EXE
 

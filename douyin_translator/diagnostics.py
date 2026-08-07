@@ -5,7 +5,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from .system import check_dependencies, check_python, get_ffmpeg, validate_output_dir
+from .system import check_dependencies, check_python, get_ffmpeg, memory_info_gb, validate_output_dir
 
 
 @dataclass
@@ -41,6 +41,9 @@ def run_diagnostics(output_dir: Path) -> DiagnosticReport:
 
     deps_ok, deps_detail = check_dependencies()
     items.append(CheckItem("Thư viện ứng dụng", deps_ok, deps_detail))
+
+    total_gb, available_gb = memory_info_gb()
+    items.append(CheckItem("Bộ nhớ RAM", available_gb >= 2, f"Tổng {total_gb:.1f} GB, khả dụng {available_gb:.1f} GB"))
 
     try:
         ffmpeg_path = get_ffmpeg()
