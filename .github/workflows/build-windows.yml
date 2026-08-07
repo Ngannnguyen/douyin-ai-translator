@@ -58,7 +58,7 @@ jobs:
             --collect-all yt_dlp `
             app.py
 
-              - name: Chay thu file EXE tren Windows
+      - name: Chay thu file EXE tren Windows
         shell: pwsh
         run: |
           Remove-Item SELF_TEST_OK.txt -ErrorAction SilentlyContinue
