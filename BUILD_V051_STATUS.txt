@@ -1,0 +1,16 @@
+STATUS: SUCCESS
+VERSION: 0.5.1
+RUN_ID: 31150316417
+TESTS: 28 PASSED
+SELF TEST: DAT
+Phien ban: 0.5.1
+Cookie trinh duyet: KHONG DOC
+FFmpeg va phu de: DAT
+Lam mo phu de va tron am thanh: DAT
+So luong CPU toi da: 2
+RAM: tong 16.0 GB, kha dung 12.5 GB
+Whisper tiny: DAT
+Dich Trung-Viet: DAT
+Giong Viet AI: DAT
+Tach thoai Trung: DAT
+Lam mo phu de Trung: DAT
