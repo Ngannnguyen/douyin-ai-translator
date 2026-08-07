@@ -31,13 +31,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest
 
       - name: Kiem tra ma nguon
         shell: pwsh
         run: |
           python -m compileall -q .
-          python -c "from douyin_translator.errors import AppError; assert 'Cách xử lý' in AppError('DL001', 'test').user_message"
-          python -c "from douyin_translator.subtitles import srt_time; assert srt_time(1.234) == '00:00:01,234'"
+          python -m pytest -q
+          python app.py --full-self-test
+          if (-not (Test-Path SELF_TEST_OK.txt)) { throw "Self-test ma nguon khong tao bao cao" }
 
       - name: Dong goi ung dung
         shell: pwsh
@@ -53,9 +55,23 @@ jobs:
             --collect-all tokenizers `
             --collect-all huggingface_hub `
             --collect-all imageio_ffmpeg `
+            --collect-all yt_dlp `
             app.py
 
-      - name: Them huong dan
+      - name: Chay thu file EXE tren Windows
+        shell: pwsh
+        run: |
+          Remove-Item SELF_TEST_OK.txt -ErrorAction SilentlyContinue
+          $process = Start-Process `
+            -FilePath "dist/Douyin_AI_Translator/Douyin_AI_Translator.exe" `
+            -ArgumentList "--full-self-test" `
+            -PassThru `
+            -Wait
+          if ($process.ExitCode -ne 0) { throw "EXE self-test that bai: $($process.ExitCode)" }
+          if (-not (Test-Path SELF_TEST_OK.txt)) { throw "EXE khong tao bao cao self-test" }
+          Get-Content SELF_TEST_OK.txt
+
+      - name: Them huong dan vao ban phat hanh
         shell: pwsh
         run: |
           Copy-Item README.md dist/Douyin_AI_Translator/README.txt
@@ -64,12 +80,12 @@ jobs:
       - name: Nen ban Windows
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/Douyin_AI_Translator/* -DestinationPath Douyin_AI_Translator_Windows_v0.2.1.zip -Force
+          Compress-Archive -Path dist/Douyin_AI_Translator/* -DestinationPath Douyin_AI_Translator_Windows_v0.3.0.zip -Force
 
       - name: Dang tai file Windows
         uses: actions/upload-artifact@v4
         with:
-          name: Douyin_AI_Translator_Windows_v0.2.1
-          path: Douyin_AI_Translator_Windows_v0.2.1.zip
+          name: Douyin_AI_Translator_Windows_v0.3.0
+          path: Douyin_AI_Translator_Windows_v0.3.0.zip
           if-no-files-found: error
           retention-days: 30
