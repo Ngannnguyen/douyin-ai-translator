@@ -313,6 +313,24 @@ def test_dual_audio_keeps_original_and_adds_vietnamese(tmp_path: Path, monkeypat
     assert "[1:a]volume=1.15[voice]" in graph
 
 
+def test_output_mp4_uses_windows_compatible_encoding(tmp_path: Path, monkeypatch):
+    commands = []
+    monkeypatch.setattr(media, "get_ffmpeg", lambda: "ffmpeg")
+    monkeypatch.setattr(media, "_run", lambda command, code: commands.append(command))
+    output = tmp_path / "out.mp4"
+    media.burn_subtitles(tmp_path / "video.mp4", tmp_path / "vi.srt", output)
+    encode = commands[0]
+    assert encode[encode.index("-pix_fmt") + 1] == "yuv420p"
+    assert encode[encode.index("-profile:v") + 1] == "high"
+    assert encode[encode.index("-level:v") + 1] == "4.1"
+    assert encode[encode.index("-tag:v") + 1] == "avc1"
+    assert encode[encode.index("-profile:a") + 1] == "aac_low"
+    assert encode[encode.index("-ar") + 1] == "48000"
+    assert encode[encode.index("-ac") + 1] == "2"
+    assert commands[1][commands[1].index("-i") + 1] == str(output)
+    assert "-xerror" in commands[1]
+
+
 def test_replace_audio_uses_separated_background(tmp_path: Path, monkeypatch):
     commands = []
     monkeypatch.setattr(media, "get_ffmpeg", lambda: "ffmpeg")
