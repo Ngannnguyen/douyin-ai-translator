@@ -1,4 +1,4 @@
-# Douyin AI Translator v0.6.5 — Sprint 2
+# Douyin AI Translator v0.7.0 — Bản thiết kế lại ổn định
 
 Ứng dụng Windows hỗ trợ:
 
@@ -8,13 +8,13 @@
 4. Tạo tệp phụ đề `.srt`.
 5. Chèn phụ đề vào video và xuất tệp `.mp4`.
 6. Xóa riêng nét phụ đề Trung bằng tái tạo nền rồi chèn phụ đề Việt; không làm mờ hoặc phủ cả thanh đáy.
-7. Nhận diện người nói và khóa một giọng Việt cố định cho từng nhân vật trong toàn bộ video.
-8. Tự rút gọn câu dịch dài theo ý chính để lồng tiếng tự nhiên, không ép đọc nhanh như máy.
+7. Dùng một giọng nữ Việt vui tươi, hài hước và thống nhất toàn bộ video.
+8. Gom mẩu nhận diện thành câu có ngữ cảnh và giữ trọn nghĩa, không tự xóa từ.
 
 Mọi lỗi chính đều được hiển thị bằng tiếng Việt, gồm nguyên nhân và hướng xử lý.
 
-Phiên bản 0.6.5 xuất MP4 tương thích trình phát mặc định của Windows bằng H.264
-8-bit yuv420p/avc1 và AAC-LC; ứng dụng tự giải mã kiểm tra tệp trước khi hoàn tất.
+Phiên bản 0.7.0 ưu tiên kết quả ổn định: bảng chú thích tối che kín chữ Trung,
+dịch theo câu có ngữ cảnh và một giọng kể nữ vui tươi, rõ nghĩa.
 
 ## Yêu cầu
 
@@ -52,12 +52,11 @@ Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu h
 
 Có thể chọn xóa phụ đề Trung đã gắn cứng trong video. Ứng dụng chỉ tạo mask quanh nét chữ và tái tạo nền tại đúng vùng đó, không làm mờ hoặc phủ đen cả dải đáy.
 
-### Giọng cố định theo nhân vật
+### Giọng kể vui tươi
 
-- Ứng dụng phân nhóm người nói từ âm thanh gốc và cấp một mã nhân vật.
-- Mỗi mã nhân vật giữ nguyên loại giọng Việt trong toàn bộ video.
-- Chỉ cảm xúc và tốc độ được điều chỉnh nhẹ; không đổi qua lại giữa giọng nam và nữ.
-- Câu dài được rút gọn theo ý tương đương trước khi tạo giọng, tốc độ đọc luôn nằm trong giới hạn tự nhiên.
+- Một giọng nữ Việt được giữ cố định trong toàn bộ video.
+- Nhịp đọc sáng, vui và nhanh nhẹ, phù hợp nội dung hoạt hình hài hước.
+- Câu dịch được giữ trọn nghĩa; timeline có thể nới nhẹ thay vì cắt mất từ.
 
 ### Khi tải video Douyin
 
