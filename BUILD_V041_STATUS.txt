@@ -1,0 +1,14 @@
+STATUS: SUCCESS
+VERSION: 0.4.1
+RUN_ID: 31146113104
+TESTS: 18 PASSED
+SELF TEST: DAT
+Phien ban: 0.4.1
+Cookie trinh duyet: KHONG DOC
+FFmpeg va phu de: DAT
+So luong CPU toi da: 2
+RAM: tong 16.0 GB, kha dung 13.3 GB
+Whisper tiny: DAT
+Dich Trung-Viet: DAT
+Tai video Douyin that: DAT
+Phu de video Douyin that: DAT
