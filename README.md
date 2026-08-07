@@ -7,8 +7,9 @@
 3. Dịch sang tiếng Việt.
 4. Tạo tệp phụ đề `.srt`.
 5. Chèn phụ đề vào video và xuất tệp `.mp4`.
-6. Làm mờ mạnh vùng phụ đề Trung và ghi đè phụ đề Việt.
-7. Lồng tiếng Việt theo đúng timeline bằng giọng nam/nữ/em bé tự chọn theo cao độ giọng gốc.
+6. Xóa riêng nét phụ đề Trung bằng tái tạo nền rồi chèn phụ đề Việt; không làm mờ hoặc phủ cả thanh đáy.
+7. Nhận diện người nói và khóa một giọng Việt cố định cho từng nhân vật trong toàn bộ video.
+8. Tự rút gọn câu dịch dài theo ý chính để lồng tiếng tự nhiên, không ép đọc nhanh như máy.
 
 Mọi lỗi chính đều được hiển thị bằng tiếng Việt, gồm nguyên nhân và hướng xử lý.
 
@@ -46,13 +47,14 @@ Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu h
 - Lồng giọng Việt lên bản nền theo đúng timeline.
 - Lần dùng đầu cần mạng để tải mô hình tách giọng; bước này chậm hơn chế độ 1.
 
-Cả hai chế độ mặc định làm mờ mạnh 30% vùng đáy video rồi ghi phụ đề Việt có nền tối lên trên. Có thể bỏ chọn chức năng này trên giao diện nếu video không có phụ đề Trung.
+Có thể chọn xóa phụ đề Trung đã gắn cứng trong video. Ứng dụng chỉ tạo mask quanh nét chữ và tái tạo nền tại đúng vùng đó, không làm mờ hoặc phủ đen cả dải đáy.
 
-### Tự chọn chất giọng
+### Giọng cố định theo nhân vật
 
-- Giọng gốc thấp: giọng nam Việt.
-- Giọng gốc trung hoặc cao: giọng nữ Việt.
-- Giọng gốc rất cao: preset em bé Việt, tăng cao độ và nhịp nói nhưng vẫn căn đúng timeline.
+- Ứng dụng phân nhóm người nói từ âm thanh gốc và cấp một mã nhân vật.
+- Mỗi mã nhân vật giữ nguyên loại giọng Việt trong toàn bộ video.
+- Chỉ cảm xúc và tốc độ được điều chỉnh nhẹ; không đổi qua lại giữa giọng nam và nữ.
+- Câu dài được rút gọn theo ý tương đương trước khi tạo giọng, tốc độ đọc luôn nằm trong giới hạn tự nhiên.
 
 ### Khi tải video Douyin
 
