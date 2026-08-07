@@ -291,3 +291,6 @@ def test_demucs_401_uses_supported_internal_api():
     assert "from demucs.api" not in source
     assert "from demucs.apply import apply_model" in source
     assert "from demucs.pretrained import get_model" in source
+    assert "AudioFile" not in source
+    assert 'get_model("htdemucs")' in source
+    assert 'get_model("mdx_q")' not in source
