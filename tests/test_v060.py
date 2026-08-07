@@ -128,6 +128,54 @@ def test_tts_retries_with_shorter_meaning_instead_of_failing(tmp_path: Path, mon
     assert len(segments[0]["text"].split()) <= 1
 
 
+def test_one_second_timeline_never_cancels_the_whole_video(tmp_path: Path, monkeypatch):
+    rate = 16000
+    source = tmp_path / "source.wav"
+    with wave.open(str(source), "wb") as target:
+        target.setnchannels(1)
+        target.setsampwidth(2)
+        target.setframerate(rate)
+        target.writeframes(np.zeros(rate * 2, dtype="<i2").tobytes())
+
+    async def fake_save(text, profile, output, rate_delta=0):
+        output.write_bytes(b"mock")
+
+    def fake_decode(mp3, output):
+        # Mô phỏng đúng lỗi thực tế: dù chỉ còn một từ, Edge TTS vẫn tạo
+        # 1,4 giây âm thanh cho timeline 1,0 giây.
+        samples = np.zeros(round(24000 * 1.4), dtype="<i2")
+        with wave.open(str(output), "wb") as target:
+            target.setnchannels(1)
+            target.setsampwidth(2)
+            target.setframerate(24000)
+            target.writeframes(samples.tobytes())
+        return output
+
+    def fake_fit(decoded, output, seconds):
+        samples = np.zeros(round(24000 * seconds), dtype="<i2")
+        with wave.open(str(output), "wb") as target:
+            target.setnchannels(1)
+            target.setsampwidth(2)
+            target.setframerate(24000)
+            target.writeframes(samples.tobytes())
+        return output
+
+    monkeypatch.setattr(voice_module, "_save_tts", fake_save)
+    monkeypatch.setattr(voice_module, "_decode_mp3", fake_decode)
+    monkeypatch.setattr(voice_module, "_fit_decoded_clip", fake_fit)
+    def fake_mix(clips, duration, output):
+        output.write_bytes(b"ok")
+        return output
+
+    monkeypatch.setattr(voice_module, "_mix_wav_clips", fake_mix)
+    segments = [{"start": 0.0, "end": 1.0, "text": "Xin chào, đây là giọng Việt."}]
+    result = voice_module.create_vietnamese_voice(
+        segments, source, tmp_path / "voice.wav", tmp_path
+    )
+    assert result.is_file()
+    assert len(segments[0]["text"].split()) == 1
+
+
 def test_tts_speed_never_becomes_machine_like():
     for source, target in [(8, 1), (1, 8), (2.1, 2.0)]:
         value = float(tempo_filters(source, target).split("=")[1])
