@@ -31,10 +31,10 @@ Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu h
 
 ### Khi tải video Douyin
 
-- Bản v0.3.0 chạy ở chế độ an toàn: không đọc cookie và không yêu cầu đóng Chrome hoặc Edge.
+- Bản v0.4.0 không đọc hồ sơ hoặc cơ sở dữ liệu cookie của Chrome/Edge cá nhân.
 - Liên kết công khai vẫn được thử tải trực tiếp với thời gian chờ và số lần thử giới hạn.
-- Nếu Douyin yêu cầu cookie, ứng dụng dừng và hướng dẫn tải video hợp pháp về máy rồi dùng nút **Chọn video**.
-- Ứng dụng không tự tắt trình duyệt, không kết thúc tiến trình và không thay đổi cài đặt Windows.
+- Nếu Douyin yêu cầu cookie, ứng dụng mở một hồ sơ trình duyệt tạm riêng, lấy cookie của đúng phiên đó qua cổng nội bộ rồi tải lại.
+- Ứng dụng chỉ đóng cửa sổ tạm do chính nó tạo, không tắt Chrome/Edge đang dùng và không thay đổi cài đặt Windows.
 
 ### Giới hạn tài nguyên an toàn
 

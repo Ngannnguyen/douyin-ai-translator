@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -72,6 +73,21 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                 if not translated or not translated.strip():
                     raise RuntimeError("Dịch vụ dịch trả về kết quả rỗng")
                 full_results.append("Dich Trung-Viet: DAT")
+
+                e2e_url = os.getenv("DOUYIN_E2E_URL", "").strip()
+                if e2e_url:
+                    from .pipeline import process
+
+                    e2e_output = root / "douyin_e2e_output"
+                    e2e_result = process(e2e_url, e2e_output)
+                    for path in (e2e_result.video, e2e_result.subtitle):
+                        if not path.is_file() or path.stat().st_size == 0:
+                            raise RuntimeError(f"E2E Douyin không tạo được {path.name}")
+                    subtitle_text = e2e_result.subtitle.read_text(encoding="utf-8-sig")
+                    if " --> " not in subtitle_text or len(subtitle_text.strip()) < 20:
+                        raise RuntimeError("E2E Douyin tạo phụ đề rỗng hoặc không đúng định dạng SRT")
+                    full_results.append("Tai video Douyin that: DAT")
+                    full_results.append("Phu de video Douyin that: DAT")
 
         report_path.write_text(
             "\n".join([

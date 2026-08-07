@@ -1,9 +1,12 @@
 from pathlib import Path
+from types import SimpleNamespace
 
+import douyin_translator.downloader as downloader
 from douyin_translator.errors import AppError
 from douyin_translator.subtitles import srt_time, write_srt
 from douyin_translator.diagnostics import CheckItem, DiagnosticReport
 from douyin_translator.downloader import download_options, extract_url, normalize_douyin_url
+from douyin_translator.douyin_session import _write_netscape_cookies
 from douyin_translator.pipeline import unique_path
 
 
@@ -17,6 +20,16 @@ def test_write_srt(tmp_path: Path):
     content = output.read_text(encoding="utf-8-sig")
     assert "00:00:00,100 --> 00:00:01,800" in content
     assert "Xin chào" in content
+
+
+def test_srt_contains_real_timeline_and_text(tmp_path: Path):
+    output = write_srt(
+        [{"start": 2.0, "end": 4.2, "text": "Nội dung phụ đề thực"}],
+        tmp_path / "verified.srt",
+    )
+    content = output.read_text(encoding="utf-8-sig")
+    assert " --> " in content
+    assert len(content.strip()) >= 20
 
 
 def test_vietnamese_error_message():
@@ -50,6 +63,23 @@ def test_extract_url_from_share_text():
     assert extract_url(shared) == "https://v.douyin.com/abc123/"
 
 
+def test_extract_url_from_real_douyin_share_text():
+    shared = (
+        "7.64 :7pm w@s.eo 09/24 vSl:/ 坚持中华传统美德的传承 "
+        "# 轻漫计划 # 原创动画 https://v.douyin.com/D8234TU1NNk/ "
+        "复制此链接，打开Dou音搜索，直接观看视频！"
+    )
+    assert extract_url(shared) == "https://v.douyin.com/D8234TU1NNk/"
+
+
+def test_extract_url_from_markdown_share_text():
+    shared = (
+        "Xem video [https://v.douyin.com/D8234TU1NNk/]"
+        "(https://v.douyin.com/D8234TU1NNk/) rồi mở Douyin"
+    )
+    assert extract_url(shared) == "https://v.douyin.com/D8234TU1NNk/"
+
+
 def test_safe_mode_never_reads_browser_cookies():
     options = download_options(
         "https://www.douyin.com/video/7552467869231254847",
@@ -66,8 +96,72 @@ def test_other_sites_do_not_read_browser_cookies():
 
 def test_cookie_error_is_in_vietnamese():
     message = AppError("DL003", "Fresh cookies are needed").user_message
-    assert "không đọc cookie" in message
-    assert "CHỌN VIDEO" in message
+    assert "phiên truy cập mới" in message
+    assert "không đọc dữ liệu Chrome/Edge cá nhân" in message
+
+
+def test_session_cookie_file_is_netscape_compatible(tmp_path: Path):
+    output = _write_netscape_cookies(
+        [{
+            "domain": ".douyin.com",
+            "path": "/",
+            "secure": True,
+            "expires": 1999999999.0,
+            "name": "ttwid",
+            "value": "safe-session-value",
+        }],
+        tmp_path / "cookies.txt",
+    )
+    content = output.read_text(encoding="utf-8")
+    assert content.startswith("# Netscape HTTP Cookie File")
+    assert ".douyin.com\tTRUE\t/\tTRUE\t1999999999\tttwid\tsafe-session-value" in content
+
+
+def test_download_options_accept_only_explicit_session_cookie(tmp_path: Path):
+    cookie_file = tmp_path / "cookies.txt"
+    options = download_options(
+        "https://www.douyin.com/video/7644014700174331190",
+        "video_goc.%(ext)s",
+        cookie_file=cookie_file,
+        user_agent="Test Browser",
+    )
+    assert options["cookiefile"] == str(cookie_file)
+    assert options["http_headers"]["User-Agent"] == "Test Browser"
+
+
+def test_douyin_failure_retries_with_isolated_session(tmp_path: Path, monkeypatch):
+    cookie_file = tmp_path / "session.txt"
+    cookie_file.write_text("# Netscape HTTP Cookie File\n", encoding="utf-8")
+    expected = tmp_path / "video_goc.mp4"
+    attempts = []
+
+    def fake_download(source, work_dir, cookie_file=None, user_agent=""):
+        attempts.append((source, cookie_file, user_agent))
+        if len(attempts) == 1:
+            raise RuntimeError("HTTP Error 403")
+        expected.write_bytes(b"video")
+        return expected
+
+    monkeypatch.setattr(downloader, "_download", fake_download)
+    import douyin_translator.douyin_session as session_module
+    monkeypatch.setattr(
+        session_module,
+        "create_douyin_session",
+        lambda source, progress: SimpleNamespace(
+            cookie_file=cookie_file,
+            user_agent="Isolated Browser",
+        ),
+    )
+
+    result = downloader.obtain_video(
+        "https://v.douyin.com/D8234TU1NNk/",
+        tmp_path,
+        lambda percent, message: None,
+    )
+    assert result == expected
+    assert attempts[0][1] is None
+    assert attempts[1][1] == cookie_file
+    assert attempts[1][2] == "Isolated Browser"
 
 
 def test_unique_path_does_not_overwrite(tmp_path: Path):

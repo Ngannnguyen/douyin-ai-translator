@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.3.0 Safe Mode — Sprint 1
+## Mốc hiện tại: v0.4.0 Isolated Douyin Session — Sprint 1
 
 Ngày cập nhật: 07/08/2026
 
@@ -20,7 +20,8 @@ Ngày cập nhật: 07/08/2026
 - GitHub Actions build tự động trên máy Windows 64-bit.
 - Tự chuyển link trang cá nhân Douyin có `modal_id` hoặc `vid` thành link video trực tiếp.
 - Nhận cả đoạn văn bản chia sẻ Douyin và tự lấy URL đầu tiên.
-- Loại bỏ hoàn toàn chức năng đọc cookie Chrome/Edge.
+- Không đọc hồ sơ hoặc cơ sở dữ liệu cookie Chrome/Edge cá nhân.
+- Khi bị Douyin chặn, tự mở một hồ sơ Chrome/Edge tạm qua cổng nội bộ `127.0.0.1`, lấy cookie phiên đó rồi tải lại.
 - Không yêu cầu đóng trình duyệt và không can thiệp tiến trình Windows.
 - Giới hạn Whisper và FFmpeg ở tối đa 2 luồng CPU; FFmpeg chạy ưu tiên thấp.
 - Kiểm tra RAM khả dụng trước khi xử lý và dừng an toàn nếu còn dưới 2 GB.
@@ -33,16 +34,15 @@ Ngày cập nhật: 07/08/2026
 - Kiểm tra định dạng thời gian và tạo SRT tiếng Việt: đạt.
 - Kiểm tra đầy đủ nội dung lỗi tiếng Việt: đạt.
 - Thử tạo video ngắn và chèn phụ đề qua đường dẫn có dấu/có khoảng trắng: đạt.
-- Kiểm tra trực tiếp trên Windows 10/11: chưa thực hiện trong môi trường phát triển hiện tại.
-- Kiểm tra tải Douyin và nhận diện một video thực: chưa thực hiện vì chưa có video mẫu được phép sử dụng.
+- Kiểm tra bản v0.3.0 trực tiếp trên Windows Server 2022: 11 unit test, FFmpeg, Whisper và dịch Trung–Việt đều đạt.
+- Bản v0.4.0 sẽ chỉ được phát hành khi GitHub Actions tải được link Douyin mẫu và tạo MP4 + SRT thành công.
 
 ### Phần tiếp theo của Sprint 1
 
-1. Repository đã tạo: `https://github.com/Ngannnguyen/douyin-ai-translator`.
-2. Tải gói v0.2.1 lên repository bằng trình duyệt.
-3. Theo dõi GitHub Actions build bản Windows 10/11.
-4. Tải artifact và kiểm tra mở ứng dụng trên Windows.
-5. Chạy thử với một video mẫu ngắn, sửa lỗi và chốt bản Release Candidate.
+1. Đưa mã nguồn v0.4.0 lên repository.
+2. Chạy E2E trên Windows với link Douyin mẫu đã cung cấp.
+3. Kiểm tra file video tải về, SRT và MP4 đã chèn phụ đề.
+4. Chỉ tải artifact và chốt Release Candidate khi tất cả bước đạt.
 
 ### Chưa thuộc Sprint 1
 
@@ -51,9 +51,8 @@ Ngày cập nhật: 07/08/2026
 - Tài khoản, gói Free/Pro và thanh toán.
 - Tự tìm trend hoặc đăng bài đa nền tảng.
 
-### Trạng thái GitHub khi kết thúc phiên
+### Trạng thái phát hành
 
-- Repository tồn tại, công khai và đang trống.
-- Người dùng đã kết nối GitHub và chọn repository.
-- Phiên hiện tại vẫn chưa nhận được công cụ ghi repository, nên chưa có mã nguồn nào được đẩy lên.
-- Không được báo rằng file EXE đã có cho đến khi GitHub Actions build thành công và artifact tải xuống đã được xác minh.
+- Repository: `https://github.com/Ngannnguyen/douyin-ai-translator`.
+- Bản v0.3.0 đã build và self-test Windows thành công nhưng chưa đạt tải Douyin thật.
+- Không phát hành v0.4.0 cho đến khi E2E link Douyin thật đạt.
