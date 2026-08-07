@@ -31,7 +31,7 @@ FFmpeg được cài tự động cùng gói Python `imageio-ffmpeg`, không b�
 
 Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu hơn bình thường.
 
-## Hai chế độ lồng tiếng v0.5.0
+## Hai chế độ lồng tiếng v0.5.1
 
 ### 1. Song ngữ
 

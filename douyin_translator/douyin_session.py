@@ -163,6 +163,7 @@ def create_douyin_session(target_url: str, progress=lambda percent, message: Non
         user_agent = str(info.get("User-Agent") or info.get("userAgent") or "")
         deadline = time.monotonic() + 120
         last_names: set[str] = set()
+        ready_since: float | None = None
         while time.monotonic() < deadline:
             try:
                 # Trên Windows, chrome.exe có thể bàn giao cửa sổ cho tiến trình
@@ -178,8 +179,15 @@ def create_douyin_session(target_url: str, progress=lambda percent, message: Non
                 ]
                 last_names = {str(cookie.get("name") or "") for cookie in douyin_cookies}
                 if douyin_cookies and ({"s_v_web_id", "ttwid"} & last_names):
-                    _write_netscape_cookies(douyin_cookies, cookie_file)
-                    return DouyinSession(cookie_file=cookie_file, user_agent=user_agent)
+                    # Cookie cơ bản thường xuất hiện trước khi Douyin hoàn tất
+                    # JavaScript chống bot. Chờ ổn định vài giây để tránh đóng
+                    # trình duyệt quá sớm rồi nhận lỗi "Fresh cookies".
+                    ready_since = ready_since or time.monotonic()
+                    if time.monotonic() - ready_since >= 5:
+                        _write_netscape_cookies(douyin_cookies, cookie_file)
+                        return DouyinSession(cookie_file=cookie_file, user_agent=user_agent)
+                else:
+                    ready_since = None
             except Exception:
                 pass
             progress(12, "Giữ nguyên cửa sổ Chrome riêng; không cần đăng nhập, ứng dụng sẽ tự đóng...")

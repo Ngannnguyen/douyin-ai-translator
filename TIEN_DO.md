@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.5.0 AI Dubbing — Sprint 2
+## Mốc hiện tại: v0.5.1 AI Dubbing — Sprint 2
 
 Ngày cập nhật: 07/08/2026
 

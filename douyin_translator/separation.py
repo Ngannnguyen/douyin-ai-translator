@@ -38,6 +38,8 @@ def separate_background(
             if source.getsampwidth() != 2:
                 raise RuntimeError("Âm thanh nguồn phải là PCM 16-bit")
             pcm = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
+        if channels < 1 or not len(pcm) or len(pcm) % channels:
+            raise RuntimeError("Âm thanh nguồn rỗng hoặc sai cấu trúc kênh")
         wav = torch.from_numpy(pcm.copy()).float().view(-1, channels).t() / 32768.0
         wav = convert_audio(wav, sample_rate, model.samplerate, model.audio_channels)
         reference = wav.mean(0)
@@ -45,17 +47,30 @@ def separate_background(
         std = reference.std().clamp_min(1e-8)
         normalized = (wav - mean) / std
 
-        with torch.inference_mode():
-            sources = apply_model(
-                model,
-                normalized[None],
-                device=device,
-                shifts=0,
-                split=True,
-                overlap=0.1,
-                progress=False,
-                num_workers=0,
-            )[0]
+        def run_model(selected_device: str):
+            with torch.inference_mode():
+                return apply_model(
+                    model,
+                    normalized[None],
+                    device=selected_device,
+                    shifts=0,
+                    split=True,
+                    overlap=0.1,
+                    progress=False,
+                    num_workers=0,
+                )[0]
+
+        try:
+            sources = run_model(device)
+        except RuntimeError as gpu_error:
+            if device != "cuda" or "cuda" not in str(gpu_error).lower():
+                raise
+            # RTX vẫn có thể hết VRAM với video dài. Tự chuyển sang CPU thay
+            # vì làm hỏng toàn bộ công việc đã nhận diện và dịch trước đó.
+            progress(82, "GPU không đủ bộ nhớ; đang tự chuyển tách thoại sang CPU...")
+            torch.cuda.empty_cache()
+            model.to("cpu")
+            sources = run_model("cpu")
         sources = sources * std + mean
 
         if "vocals" not in model.sources:

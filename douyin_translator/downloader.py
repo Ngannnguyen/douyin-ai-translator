@@ -112,6 +112,7 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
         # phiên tách biệt do ứng dụng tự tạo.
         if is_douyin_url(source):
             progress(9, "Douyin yêu cầu phiên mới; đang chuyển sang cửa sổ an toàn riêng...")
+            session = None
             try:
                 from .douyin_session import create_douyin_session
 
@@ -121,4 +122,9 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
                 raise
             except Exception as retry_exc:
                 raise AppError("DL004", str(retry_exc)) from retry_exc
+            finally:
+                # Cookie chỉ thuộc phiên Chrome tách biệt của đúng lần tải này.
+                # Xóa ngay cả khi tải lỗi để tránh dùng nhầm cookie cũ lần sau.
+                if session is not None:
+                    session.cookie_file.unlink(missing_ok=True)
         raise AppError("DL001", str(exc)) from exc

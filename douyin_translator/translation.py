@@ -9,6 +9,8 @@ def translate_segments(segments: list[dict], progress) -> list[dict]:
     try:
         from deep_translator import GoogleTranslator
 
+        if not segments:
+            raise RuntimeError("Không có đoạn tiếng Trung để dịch")
         translator = GoogleTranslator(source="zh-CN", target="vi")
         total = len(segments)
         output = []
@@ -22,9 +24,10 @@ def translate_segments(segments: list[dict], progress) -> list[dict]:
                 except Exception as exc:
                     last_error = exc
                     time.sleep(1.5 * (attempt + 1))
-            if not translated:
+            translated_text = str(translated or "").strip()
+            if not translated_text:
                 raise RuntimeError(f"Đoạn {index}: {last_error}")
-            output.append({**segment, "text": translated.strip()})
+            output.append({**segment, "text": translated_text})
             progress(52 + int(23 * index / total), f"Đang dịch tiếng Việt: {index}/{total} đoạn")
         return output
     except Exception as exc:

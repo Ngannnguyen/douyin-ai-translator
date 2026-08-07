@@ -17,6 +17,15 @@ MALE_VOICE = "vi-VN-NamMinhNeural"
 CHILD_VOICE = "vi-VN-child"
 
 
+def voice_settings(voice: str) -> tuple[str, str, str]:
+    """Ánh xạ preset tự chọn sang giọng/rate/pitch mà Edge TTS hỗ trợ."""
+    if voice == CHILD_VOICE:
+        return FEMALE_VOICE, "+12%", "+35Hz"
+    if voice not in {FEMALE_VOICE, MALE_VOICE}:
+        raise ValueError(f"Giọng đọc không hợp lệ: {voice}")
+    return voice, "+0%", "+0Hz"
+
+
 def _read_mono_wav(audio: Path) -> tuple[np.ndarray, int]:
     with wave.open(str(audio), "rb") as source:
         channels = source.getnchannels()
@@ -79,9 +88,7 @@ async def _save_tts(text: str, voice: str, output: Path) -> None:
 
     # Edge TTS chưa có giọng trẻ em tiếng Việt riêng. Tạo preset trẻ em từ
     # Hoài My bằng cách tăng cao độ và nhịp nói, sau đó vẫn căn lại timeline.
-    edge_voice = FEMALE_VOICE if voice == CHILD_VOICE else voice
-    rate = "+12%" if voice == CHILD_VOICE else "+0%"
-    pitch = "+35Hz" if voice == CHILD_VOICE else "+0Hz"
+    edge_voice, rate, pitch = voice_settings(voice)
     last_error: Exception | None = None
     for attempt in range(3):
         try:
@@ -149,7 +156,13 @@ def create_vietnamese_voice(
     progress=lambda percent, message: None,
 ) -> Path:
     try:
+        if not translated:
+            raise ValueError("Không có lời dịch để tạo giọng Việt")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        work_dir.mkdir(parents=True, exist_ok=True)
         source_samples, sample_rate = _read_mono_wav(source_audio)
+        if not len(source_samples):
+            raise ValueError("Âm thanh nguồn rỗng")
         clips: list[tuple[float, Path]] = []
         total = max(1, len(translated))
         for index, segment in enumerate(translated, start=1):
@@ -160,7 +173,10 @@ def create_vietnamese_voice(
             voice = choose_voice(source_samples[left:right], sample_rate)
             mp3 = work_dir / f"voice_{index:04}.mp3"
             wav = work_dir / f"voice_{index:04}.wav"
-            asyncio.run(_save_tts(str(segment["text"]), voice, mp3))
+            text = str(segment["text"]).strip()
+            if not text:
+                raise ValueError(f"Đoạn lồng tiếng số {index} không có nội dung")
+            asyncio.run(_save_tts(text, voice, mp3))
             _fit_clip(mp3, wav, end - start)
             clips.append((start, wav))
             progress(76 + int(8 * index / total), f"Đang tạo giọng Việt: {index}/{total} đoạn")

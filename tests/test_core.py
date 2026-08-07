@@ -7,12 +7,21 @@ import douyin_translator.downloader as downloader
 import douyin_translator.media as media
 from douyin_translator.errors import AppError
 from douyin_translator.subtitles import srt_time, write_srt
+from douyin_translator.translation import translate_segments
 from douyin_translator.diagnostics import CheckItem, DiagnosticReport
 from douyin_translator.downloader import download_options, extract_url, normalize_douyin_url
 from douyin_translator.douyin_session import _write_netscape_cookies
 from douyin_translator.pipeline import unique_path
 from douyin_translator import separation
-from douyin_translator.voice import CHILD_VOICE, FEMALE_VOICE, MALE_VOICE, choose_voice, tempo_filters
+from douyin_translator.voice import (
+    CHILD_VOICE,
+    FEMALE_VOICE,
+    MALE_VOICE,
+    choose_voice,
+    create_vietnamese_voice,
+    tempo_filters,
+    voice_settings,
+)
 
 
 def test_srt_time():
@@ -25,6 +34,19 @@ def test_write_srt(tmp_path: Path):
     content = output.read_text(encoding="utf-8-sig")
     assert "00:00:00,100 --> 00:00:01,800" in content
     assert "Xin chào" in content
+
+
+def test_write_srt_rejects_empty_or_invalid_timeline(tmp_path: Path):
+    try:
+        write_srt([], tmp_path / "empty.srt")
+        raise AssertionError("Phải từ chối danh sách phụ đề rỗng")
+    except AppError as exc:
+        assert exc.code == "SUB001"
+    try:
+        write_srt([{"start": 2, "end": 1, "text": "Sai"}], tmp_path / "bad.srt")
+        raise AssertionError("Phải từ chối timeline sai")
+    except AppError as exc:
+        assert exc.code == "SUB001"
 
 
 def test_srt_contains_real_timeline_and_text(tmp_path: Path):
@@ -167,6 +189,7 @@ def test_douyin_failure_retries_with_isolated_session(tmp_path: Path, monkeypatc
     assert attempts[0][1] is None
     assert attempts[1][1] == cookie_file
     assert attempts[1][2] == "Isolated Browser"
+    assert not cookie_file.exists()
 
 
 def test_session_survives_when_windows_launcher_exits(tmp_path: Path, monkeypatch):
@@ -191,6 +214,9 @@ def test_session_survives_when_windows_launcher_exits(tmp_path: Path, monkeypatc
         lambda port, timeout_seconds=20.0: {"User-Agent": "Windows Chrome"},
     )
     monkeypatch.setattr(session_module, "_page_websocket", lambda port: "ws://127.0.0.1:9229/page")
+    clock = iter(range(0, 1000, 2))
+    monkeypatch.setattr(session_module.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(session_module.time, "sleep", lambda seconds: None)
 
     def fake_cdp(url, method):
         commands.append(method)
@@ -234,6 +260,25 @@ def test_auto_voice_uses_original_pitch():
     assert choose_voice(male, rate) == MALE_VOICE
     assert choose_voice(female, rate) == FEMALE_VOICE
     assert choose_voice(child, rate) == CHILD_VOICE
+
+
+def test_voice_presets_include_male_female_and_child():
+    assert voice_settings(MALE_VOICE) == (MALE_VOICE, "+0%", "+0Hz")
+    assert voice_settings(FEMALE_VOICE) == (FEMALE_VOICE, "+0%", "+0Hz")
+    assert voice_settings(CHILD_VOICE) == (FEMALE_VOICE, "+12%", "+35Hz")
+
+
+def test_empty_translation_and_voice_fail_cleanly(tmp_path: Path):
+    try:
+        translate_segments([], lambda percent, message: None)
+        raise AssertionError("Phải từ chối danh sách dịch rỗng")
+    except AppError as exc:
+        assert exc.code == "TR001"
+    try:
+        create_vietnamese_voice([], tmp_path / "missing.wav", tmp_path / "out.wav", tmp_path)
+        raise AssertionError("Phải từ chối danh sách lồng tiếng rỗng")
+    except AppError as exc:
+        assert exc.code == "VOICE001"
 
 
 def test_voice_tempo_filter_stays_in_ffmpeg_range():
@@ -294,3 +339,51 @@ def test_demucs_401_uses_supported_internal_api():
     assert "AudioFile" not in source
     assert 'get_model("htdemucs")' in source
     assert 'get_model("mdx_q")' not in source
+    assert "tự chuyển tách thoại sang CPU" in source
+
+
+def test_demucs_falls_back_to_cpu_when_gpu_runs_out_of_memory(tmp_path: Path, monkeypatch):
+    import wave
+    import torch
+    import demucs.apply
+    import demucs.audio
+    import demucs.pretrained
+
+    source = tmp_path / "stereo.wav"
+    samples = (np.sin(np.arange(4410) * 0.1) * 12000).astype("<i2")
+    stereo = np.column_stack((samples, samples)).reshape(-1)
+    with wave.open(str(source), "wb") as target:
+        target.setnchannels(2)
+        target.setsampwidth(2)
+        target.setframerate(44100)
+        target.writeframes(stereo.tobytes())
+
+    class FakeModel:
+        samplerate = 44100
+        audio_channels = 2
+        sources = ["drums", "bass", "other", "vocals"]
+
+        def to(self, device):
+            return self
+
+        def eval(self):
+            return self
+
+    devices = []
+
+    def fake_apply(model, mix, device, **kwargs):
+        devices.append(str(device))
+        if str(device) == "cuda":
+            raise RuntimeError("CUDA out of memory")
+        frames = mix.shape[-1]
+        return torch.zeros((1, 4, 2, frames), dtype=torch.float32)
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(demucs.pretrained, "get_model", lambda name: FakeModel())
+    monkeypatch.setattr(demucs.audio, "convert_audio", lambda wav, *args: wav)
+    monkeypatch.setattr(demucs.apply, "apply_model", fake_apply)
+
+    output = separation.separate_background(source, tmp_path / "background.wav")
+    assert output.is_file() and output.stat().st_size > 44
+    assert devices == ["cuda", "cpu"]

@@ -15,10 +15,19 @@ def srt_time(seconds: float) -> str:
 
 def write_srt(segments: list[dict], output: Path) -> Path:
     try:
+        if not segments:
+            raise ValueError("Không có nội dung để tạo phụ đề")
         blocks = []
         for index, segment in enumerate(segments, start=1):
             text = str(segment["text"]).replace("\n", " ").strip()
-            blocks.append(f"{index}\n{srt_time(segment['start'])} --> {srt_time(segment['end'])}\n{text}")
+            start = float(segment["start"])
+            end = float(segment["end"])
+            if not text:
+                raise ValueError(f"Phụ đề số {index} không có nội dung")
+            if end <= start:
+                raise ValueError(f"Phụ đề số {index} có thời gian kết thúc không hợp lệ")
+            blocks.append(f"{index}\n{srt_time(start)} --> {srt_time(end)}\n{text}")
+        output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text("\n\n".join(blocks) + "\n", encoding="utf-8-sig")
         return output
     except Exception as exc:
