@@ -40,7 +40,10 @@ def _clean_text(text: str) -> str:
 
 def shorten_text(text: str, max_words: int) -> str:
     """Rút gọn theo cụm ý, không cắt ký tự hoặc ép giọng đọc quá nhanh."""
-    max_words = max(3, int(max_words))
+    # Câu thoại rất ngắn (khoảng 1–2 giây) đôi khi chỉ đủ chỗ cho một
+    # hoặc hai từ. Không ép tối thiểu ba từ vì TTS sẽ phải đọc quá nhanh
+    # hoặc bị cắt mất phần cuối.
+    max_words = max(1, int(max_words))
     value = _clean_text(text)
     words = value.split()
     if len(words) <= max_words:
@@ -109,7 +112,7 @@ def shorten_text(text: str, max_words: int) -> str:
         protected = re.sub(phrase, token, protected, flags=re.IGNORECASE)
     words = protected.split()
     kept = [word for word in words if word.lower().strip(".,!?") not in _LOW_VALUE_WORDS]
-    if len(kept) < 3:
+    if len(kept) < min(3, max_words):
         kept = words
     if len(kept) > max_words:
         important_indexes = [
@@ -128,7 +131,7 @@ def shorten_text(text: str, max_words: int) -> str:
 
 def fit_text_to_duration(text: str, duration: float) -> str:
     # Tiếng Việt tự nhiên khoảng 3–3.5 âm tiết/từ mỗi giây.
-    budget = max(3, round(max(0.7, duration) * 3.2))
+    budget = max(1, round(max(0.25, duration) * 3.2))
     return shorten_text(text, budget)
 
 
