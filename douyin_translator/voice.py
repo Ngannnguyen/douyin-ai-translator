@@ -198,7 +198,18 @@ def create_vietnamese_voice(
                     shorter = shorten_text(text, len(text.split()) - 1)
                 text = shorter
                 segment["text"] = text
-            if _wav_duration(decoded) > target_seconds * 1.25:
+            spoken_seconds = _wav_duration(decoded)
+            if spoken_seconds > target_seconds * 1.12 and len(text.split()) == 1:
+                # Edge TTS thường thêm khoảng nghỉ ở đầu/cuối. Với timeline chỉ
+                # khoảng một giây, một từ vẫn có thể dài hơn giới hạn dù nội
+                # dung không thể rút tiếp. Tạo lại ở tốc độ tự nhiên cao nhất
+                # rồi để FFmpeg cắt đúng timeline, thay vì hủy cả video.
+                mp3.unlink(missing_ok=True)
+                decoded.unlink(missing_ok=True)
+                asyncio.run(_save_tts(text, profile, mp3, 12))
+                _decode_mp3(mp3, decoded)
+                spoken_seconds = _wav_duration(decoded)
+            if spoken_seconds > target_seconds * 1.25 and len(text.split()) > 1:
                 raise ValueError(
                     f"Câu {index} quá dài để lồng tự nhiên trong {target_seconds:.1f} giây"
                 )
