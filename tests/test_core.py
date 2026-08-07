@@ -11,6 +11,7 @@ from douyin_translator.diagnostics import CheckItem, DiagnosticReport
 from douyin_translator.downloader import download_options, extract_url, normalize_douyin_url
 from douyin_translator.douyin_session import _write_netscape_cookies
 from douyin_translator.pipeline import unique_path
+from douyin_translator import separation
 from douyin_translator.voice import CHILD_VOICE, FEMALE_VOICE, MALE_VOICE, choose_voice, tempo_filters
 
 
@@ -283,3 +284,10 @@ def test_replace_audio_uses_separated_background(tmp_path: Path, monkeypatch):
     graph = command[command.index("-filter_complex") + 1]
     assert "[2:a]volume=1.0[bg]" in graph
     assert command.count("-i") == 3
+
+
+def test_demucs_401_uses_supported_internal_api():
+    source = Path(separation.__file__).read_text(encoding="utf-8")
+    assert "from demucs.api" not in source
+    assert "from demucs.apply import apply_model" in source
+    assert "from demucs.pretrained import get_model" in source
