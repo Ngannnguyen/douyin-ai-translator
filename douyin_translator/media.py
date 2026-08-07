@@ -55,14 +55,20 @@ def _filter_path(path: Path) -> str:
 
 
 def subtitle_video_filter(subtitle: Path, hide_original: bool = False) -> str:
-    # Không làm mờ, không vẽ hộp hoặc thanh đen. Video đầu vào đã được
-    # subtitle_removal xóa riêng nét chữ Trung trước khi đến bước này.
     style = (
-        "FontName=Arial,FontSize=20,PrimaryColour=&H00FFFFFF,"
+        "FontName=Arial,FontSize=22,PrimaryColour=&H00FFFFFF,"
         "OutlineColour=&H00000000,BackColour=&H00000000,"
-        "BorderStyle=1,Outline=2,Shadow=0,MarginV=30"
+        "BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=34"
     )
-    return f"subtitles='{_filter_path(subtitle)}':force_style='{style}'"
+    subtitle_filter = f"subtitles='{_filter_path(subtitle)}':force_style='{style}'"
+    if hide_original:
+        # Bảng chú thích gọn nhưng đủ cao để che chắc hai dòng chữ Trung
+        # thường nằm ở đáy video Douyin. Không dùng inpaint gây vệt nhòe.
+        return (
+            "drawbox=x=0:y=ih*0.84:w=iw:h=ih*0.16:"
+            "color=black@1.0:t=fill," + subtitle_filter
+        )
+    return subtitle_filter
 
 
 def burn_subtitles(
@@ -85,7 +91,7 @@ def burn_subtitles(
 
     if voice_audio is not None:
         command += ["-filter_complex"]
-        video_chain = f"[0:v]{video_filter}[v]"
+        video_chain = f"[0:v]{video_filter},tpad=stop_mode=clone:stop_duration=30[v]"
         background_chain = (
             "[2:a]volume=1.0[bg]"
             if background_audio is not None
@@ -93,7 +99,7 @@ def burn_subtitles(
         )
         command += [
             f"{video_chain};{background_chain};[1:a]volume=1.15[voice];"
-            "[bg][voice]amix=inputs=2:duration=first:dropout_transition=0[a]",
+            "[bg][voice]amix=inputs=2:duration=longest:dropout_transition=0[a]",
             "-map", "[v]", "-map", "[a]",
         ]
     else:
@@ -106,8 +112,11 @@ def burn_subtitles(
         "-tag:v", "avc1",
         "-c:a", "aac", "-profile:a", "aac_low", "-b:a", "160k",
         "-ar", "48000", "-ac", "2",
-        "-movflags", "+faststart", str(output),
+        "-movflags", "+faststart",
     ]
+    if voice_audio is not None:
+        command += ["-shortest"]
+    command += [str(output)]
     _run(command, "VID001")
     # Giải mã lại đầu ra bằng một lượt độc lập. Nếu container/codec bị lỗi,
     # ứng dụng báo ngay thay vì trả cho người dùng một MP4 không mở được.
