@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 import douyin_translator.media as media
+import douyin_translator.voice as voice_module
 from douyin_translator import separation
 from douyin_translator.speaker import assign_speakers
 from douyin_translator.subtitle_removal import detect_subtitle_mask, remove_subtitles_from_frame
@@ -74,6 +75,56 @@ def test_long_translation_is_shortened_before_tts():
     assert len(result.split()) <= 7
     assert "tiết kiệm thời gian" in result.lower()
     assert result.endswith(".")
+
+
+def test_very_short_timeline_can_use_two_word_summary():
+    result = fit_text_to_duration("Xin chào, đây là giọng Việt.", 0.55)
+    assert 1 <= len(result.split()) <= 2
+    assert result.endswith(".")
+
+
+def test_tts_retries_with_shorter_meaning_instead_of_failing(tmp_path: Path, monkeypatch):
+    rate = 16000
+    timeline = np.arange(rate * 2, dtype=np.float32) / rate
+    pcm = (np.sin(2 * np.pi * 120 * timeline) * 12000).astype("<i2")
+    source = tmp_path / "source.wav"
+    with wave.open(str(source), "wb") as target:
+        target.setnchannels(1)
+        target.setsampwidth(2)
+        target.setframerate(rate)
+        target.writeframes(pcm.tobytes())
+
+    spoken = {"text": ""}
+
+    async def fake_save(text, profile, output, rate_delta=0):
+        spoken["text"] = text
+        output.write_bytes(b"mock")
+
+    def fake_decode(mp3, output):
+        # Giả lập TTS có khoảng nghỉ: câu nhiều từ chắc chắn vượt timeline.
+        seconds = 0.35 + 0.55 * len(spoken["text"].split())
+        samples = np.zeros(round(24000 * seconds), dtype="<i2")
+        with wave.open(str(output), "wb") as target:
+            target.setnchannels(1)
+            target.setsampwidth(2)
+            target.setframerate(24000)
+            target.writeframes(samples.tobytes())
+        return output
+
+    monkeypatch.setattr(voice_module, "_save_tts", fake_save)
+    monkeypatch.setattr(voice_module, "_decode_mp3", fake_decode)
+    monkeypatch.setattr(voice_module, "_fit_decoded_clip", lambda decoded, output, seconds: decoded)
+    def fake_mix(clips, duration, output):
+        output.write_bytes(b"ok")
+        return output
+
+    monkeypatch.setattr(voice_module, "_mix_wav_clips", fake_mix)
+    segments = [{"start": 0.0, "end": 1.0, "text": "Xin chào, đây là giọng Việt."}]
+    result = voice_module.create_vietnamese_voice(
+        segments, source, tmp_path / "voice.wav", tmp_path
+    )
+    assert result.is_file()
+    assert len(segments[0]["text"].split()) <= 1
 
 
 def test_tts_speed_never_becomes_machine_like():
