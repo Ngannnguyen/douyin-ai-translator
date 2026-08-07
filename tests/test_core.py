@@ -1,13 +1,17 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
+
 import douyin_translator.downloader as downloader
+import douyin_translator.media as media
 from douyin_translator.errors import AppError
 from douyin_translator.subtitles import srt_time, write_srt
 from douyin_translator.diagnostics import CheckItem, DiagnosticReport
 from douyin_translator.downloader import download_options, extract_url, normalize_douyin_url
 from douyin_translator.douyin_session import _write_netscape_cookies
 from douyin_translator.pipeline import unique_path
+from douyin_translator.voice import CHILD_VOICE, FEMALE_VOICE, MALE_VOICE, choose_voice, tempo_filters
 
 
 def test_srt_time():
@@ -218,3 +222,64 @@ def test_unique_path_does_not_overwrite(tmp_path: Path):
     existing = tmp_path / "ket_qua.mp4"
     existing.write_bytes(b"old")
     assert unique_path(existing).name == "ket_qua_2.mp4"
+
+
+def test_auto_voice_uses_original_pitch():
+    rate = 16000
+    seconds = np.arange(rate, dtype=np.float32) / rate
+    male = np.sin(2 * np.pi * 120 * seconds).astype(np.float32)
+    female = np.sin(2 * np.pi * 220 * seconds).astype(np.float32)
+    child = np.sin(2 * np.pi * 290 * seconds).astype(np.float32)
+    assert choose_voice(male, rate) == MALE_VOICE
+    assert choose_voice(female, rate) == FEMALE_VOICE
+    assert choose_voice(child, rate) == CHILD_VOICE
+
+
+def test_voice_tempo_filter_stays_in_ffmpeg_range():
+    values = [float(item.split("=")[1]) for item in tempo_filters(8.0, 1.0).split(",")]
+    assert all(0.5 <= value <= 2.0 for value in values)
+
+
+def test_subtitle_filter_blurs_chinese_caption_area(tmp_path: Path):
+    subtitle = tmp_path / "phu de vi.srt"
+    subtitle.write_text("", encoding="utf-8")
+    video_filter = media.subtitle_video_filter(subtitle, hide_original=True)
+    assert "crop=iw:ih*0.30" in video_filter
+    assert "boxblur=20:3" in video_filter
+    assert "drawbox=" in video_filter
+    assert "subtitles=" in video_filter
+
+
+def test_dual_audio_keeps_original_and_adds_vietnamese(tmp_path: Path, monkeypatch):
+    commands = []
+    monkeypatch.setattr(media, "get_ffmpeg", lambda: "ffmpeg")
+    monkeypatch.setattr(media, "_run", lambda command, code: commands.append(command))
+    media.burn_subtitles(
+        tmp_path / "video.mp4",
+        tmp_path / "sub.srt",
+        tmp_path / "out.mp4",
+        hide_original=True,
+        voice_audio=tmp_path / "voice.wav",
+    )
+    command = commands[0]
+    graph = command[command.index("-filter_complex") + 1]
+    assert "[0:a]volume=0.35[bg]" in graph
+    assert "[1:a]volume=1.15[voice]" in graph
+
+
+def test_replace_audio_uses_separated_background(tmp_path: Path, monkeypatch):
+    commands = []
+    monkeypatch.setattr(media, "get_ffmpeg", lambda: "ffmpeg")
+    monkeypatch.setattr(media, "_run", lambda command, code: commands.append(command))
+    media.burn_subtitles(
+        tmp_path / "video.mp4",
+        tmp_path / "sub.srt",
+        tmp_path / "out.mp4",
+        hide_original=True,
+        voice_audio=tmp_path / "voice.wav",
+        background_audio=tmp_path / "background.wav",
+    )
+    command = commands[0]
+    graph = command[command.index("-filter_complex") + 1]
+    assert "[2:a]volume=1.0[bg]" in graph
+    assert command.count("-i") == 3

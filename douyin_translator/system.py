@@ -57,10 +57,13 @@ def memory_info_gb() -> tuple[float, float]:
         return 8.0, 4.0
 
 
-def validate_resources() -> None:
+def validate_resources(min_available_gb: float = 2.0) -> None:
     _, available_gb = memory_info_gb()
-    if available_gb < 2:
-        raise AppError("SYS005", f"RAM khả dụng: {available_gb:.1f} GB")
+    if available_gb < min_available_gb:
+        raise AppError(
+            "SYS005",
+            f"RAM khả dụng: {available_gb:.1f} GB; cần tối thiểu {min_available_gb:.1f} GB",
+        )
 
 
 def validate_output_dir(output_dir: Path) -> None:
@@ -87,7 +90,10 @@ def check_python() -> tuple[bool, str]:
 
 def check_dependencies() -> tuple[bool, str]:
     missing = []
-    for package in ("faster_whisper", "deep_translator", "yt_dlp", "imageio_ffmpeg"):
+    for package in (
+        "faster_whisper", "deep_translator", "yt_dlp", "imageio_ffmpeg",
+        "edge_tts", "demucs", "torch", "torchaudio",
+    ):
         try:
             __import__(package)
         except ImportError:

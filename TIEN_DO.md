@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.4.1 Isolated Douyin Session — Sprint 1
+## Mốc hiện tại: v0.5.0 AI Dubbing — Sprint 2
 
 Ngày cập nhật: 07/08/2026
 
@@ -29,6 +29,12 @@ Ngày cập nhật: 07/08/2026
 - Thêm self-test tạo video mẫu, tách âm thanh và chèn phụ đề ngay trên file EXE Windows.
 - Sửa lỗi Windows: tiến trình khởi động Chrome có thể kết thúc sau khi bàn giao cho tiến trình con; ứng dụng nay theo dõi phiên DevTools thật và chỉ tự đóng đúng cửa sổ tạm.
 - Thêm kiểm thử hồi quy mô phỏng chính xác trường hợp launcher Chrome đã thoát nhưng cửa sổ Douyin vẫn hoạt động.
+- Thêm hai chế độ lồng tiếng: song ngữ và thay thoại Trung bằng thoại Việt.
+- Tự chọn giọng Việt nam/nữ/em bé theo cao độ từng đoạn nói gốc.
+- Căn tốc độ từng câu TTS vào timeline phụ đề bằng FFmpeg `atempo`.
+- Dùng Demucs `mdx_q` tách lời thoại khỏi nhạc và âm thanh bối cảnh ở chế độ thay thoại.
+- Làm mờ mạnh 30% vùng đáy và ghi phụ đề Việt có nền tối đè lên phụ đề Trung.
+- Thêm kiểm thử FFmpeg thực cho cả hai đường trộn âm thanh và vùng làm mờ phụ đề.
 
 ### Kết quả kiểm tra hiện tại
 
@@ -48,7 +54,7 @@ Ngày cập nhật: 07/08/2026
 
 ### Chưa thuộc Sprint 1
 
-- Lồng tiếng Việt.
+- Clone chính xác giọng và lip-sync khẩu hình.
 - Tạo hook, caption và hashtag.
 - Tài khoản, gói Free/Pro và thanh toán.
 - Tự tìm trend hoặc đăng bài đa nền tảng.

@@ -20,6 +20,8 @@ ERRORS = {
     "TR001": ("Không dịch được nội dung", "Dịch vụ dịch đang gián đoạn hoặc mất kết nối Internet.", "Kiểm tra mạng rồi thử lại sau ít phút."),
     "SUB001": ("Không tạo được phụ đề", "Dữ liệu thời gian hoặc nội dung nhận diện không hợp lệ.", "Thử lại với video khác và gửi tệp nhật ký nếu lỗi lặp lại."),
     "VID001": ("Không chèn được phụ đề", "Video, phụ đề hoặc bộ mã hóa video gặp lỗi.", "Đảm bảo ổ đĩa còn trống và đường dẫn xuất có quyền ghi."),
+    "VOICE001": ("Không tạo được giọng lồng tiếng Việt", "Dịch vụ giọng đọc hoặc bước căn thời lượng âm thanh gặp lỗi.", "Kiểm tra kết nối Internet rồi thử lại; bạn có thể bỏ chọn lồng tiếng để vẫn xuất video phụ đề."),
+    "SEP001": ("Không tách được thoại tiếng Trung", "Mô hình tách giọng chưa tải xong, thiếu bộ nhớ hoặc âm thanh nguồn không phù hợp.", "Kiểm tra mạng và thử lại. Nếu cần xử lý nhanh, chọn chế độ 1 để giữ âm thanh gốc."),
     "UNK001": ("Đã xảy ra lỗi chưa xác định", "Ứng dụng gặp lỗi ngoài dự kiến.", "Thử lại; nếu lỗi lặp lại, gửi tệp logs/app.log để kiểm tra."),
 }
 

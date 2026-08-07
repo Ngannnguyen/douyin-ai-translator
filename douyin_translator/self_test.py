@@ -7,7 +7,7 @@ from pathlib import Path
 
 from . import __version__
 from .downloader import download_options
-from .media import burn_subtitles, extract_audio
+from .media import burn_subtitles, extract_audio, extract_audio_mix
 from .subtitles import write_srt
 from .system import get_ffmpeg, memory_info_gb, safe_thread_count
 
@@ -26,6 +26,17 @@ def _create_sample_video(output: Path) -> None:
         raise RuntimeError("Không tạo được video kiểm thử")
 
 
+def _create_sample_voice(output: Path) -> None:
+    command = [
+        get_ffmpeg(), "-y",
+        "-f", "lavfi", "-i", "sine=frequency=660:duration=2",
+        "-ac", "1", "-ar", "24000", "-c:a", "pcm_s16le", str(output),
+    ]
+    result = subprocess.run(command, capture_output=True, timeout=90)
+    if result.returncode != 0 or not output.is_file():
+        raise RuntimeError("Không tạo được giọng kiểm thử")
+
+
 def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
     report_path = report_path or Path.cwd() / "SELF_TEST_OK.txt"
     try:
@@ -41,14 +52,32 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
             audio = root / "sample.wav"
             subtitle = root / "sample.srt"
             rendered = root / "rendered.mp4"
+            sample_voice = root / "voice.wav"
+            rendered_dual = root / "rendered_dual.mp4"
+            rendered_replace = root / "rendered_replace.mp4"
             _create_sample_video(source)
             extract_audio(source, audio)
+            _create_sample_voice(sample_voice)
             write_srt(
                 [{"start": 0.1, "end": 1.5, "text": "Kiểm tra phụ đề tiếng Việt"}],
                 subtitle,
             )
             burn_subtitles(source, subtitle, rendered)
-            for path in (source, audio, subtitle, rendered):
+            burn_subtitles(
+                source, subtitle, rendered_dual,
+                hide_original=True,
+                voice_audio=sample_voice,
+            )
+            burn_subtitles(
+                source, subtitle, rendered_replace,
+                hide_original=True,
+                voice_audio=sample_voice,
+                background_audio=audio,
+            )
+            for path in (
+                source, audio, subtitle, rendered,
+                rendered_dual, rendered_replace,
+            ):
                 if not path.is_file() or path.stat().st_size == 0:
                     raise RuntimeError(f"Tệp kiểm thử không hợp lệ: {path.name}")
 
@@ -74,12 +103,44 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                     raise RuntimeError("Dịch vụ dịch trả về kết quả rỗng")
                 full_results.append("Dich Trung-Viet: DAT")
 
+                if os.getenv("DOUYIN_TEST_DUBBING") == "1":
+                    from .separation import separate_background
+                    from .voice import create_vietnamese_voice
+
+                    tts_voice = create_vietnamese_voice(
+                        [{"start": 0.1, "end": 1.7, "text": "Xin chào, đây là giọng Việt."}],
+                        audio,
+                        root / "tts_voice.wav",
+                        root,
+                    )
+                    stereo = extract_audio_mix(source, root / "sample_stereo.wav")
+                    background = separate_background(stereo, root / "background.wav")
+                    dubbed = burn_subtitles(
+                        source,
+                        subtitle,
+                        root / "dubbed.mp4",
+                        hide_original=True,
+                        voice_audio=tts_voice,
+                        background_audio=background,
+                    )
+                    if not dubbed.is_file() or dubbed.stat().st_size == 0:
+                        raise RuntimeError("Kiểm thử lồng tiếng không tạo được video")
+                    full_results.append("Giong Viet AI: DAT")
+                    full_results.append("Tach thoai Trung: DAT")
+                    full_results.append("Lam mo phu de Trung: DAT")
+
                 e2e_url = os.getenv("DOUYIN_E2E_URL", "").strip()
                 if e2e_url:
                     from .pipeline import process
 
                     e2e_output = root / "douyin_e2e_output"
-                    e2e_result = process(e2e_url, e2e_output)
+                    e2e_audio_mode = os.getenv("DOUYIN_E2E_AUDIO_MODE", "original").strip()
+                    e2e_result = process(
+                        e2e_url,
+                        e2e_output,
+                        hide_chinese_subtitles=e2e_audio_mode != "original",
+                        audio_mode=e2e_audio_mode,
+                    )
                     for path in (e2e_result.video, e2e_result.subtitle):
                         if not path.is_file() or path.stat().st_size == 0:
                             raise RuntimeError(f"E2E Douyin không tạo được {path.name}")
@@ -88,6 +149,10 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                         raise RuntimeError("E2E Douyin tạo phụ đề rỗng hoặc không đúng định dạng SRT")
                     full_results.append("Tai video Douyin that: DAT")
                     full_results.append("Phu de video Douyin that: DAT")
+                    if e2e_audio_mode in {"dual", "replace"}:
+                        full_results.append("Long tieng video Douyin that: DAT")
+                    if e2e_audio_mode == "replace":
+                        full_results.append("Thay thoai Trung video Douyin that: DAT")
 
         report_path.write_text(
             "\n".join([
@@ -95,6 +160,7 @@ def run_self_test(report_path: Path | None = None, full: bool = False) -> int:
                 f"Phien ban: {__version__}",
                 "Cookie trinh duyet: KHONG DOC",
                 "FFmpeg va phu de: DAT",
+                "Lam mo phu de va tron am thanh: DAT",
                 f"So luong CPU toi da: {safe_thread_count()}",
                 f"RAM: tong {total_gb:.1f} GB, kha dung {available_gb:.1f} GB",
                 *full_results,

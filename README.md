@@ -7,6 +7,8 @@
 3. Dịch sang tiếng Việt.
 4. Tạo tệp phụ đề `.srt`.
 5. Chèn phụ đề vào video và xuất tệp `.mp4`.
+6. Làm mờ mạnh vùng phụ đề Trung và ghi đè phụ đề Việt.
+7. Lồng tiếng Việt theo đúng timeline bằng giọng nam/nữ/em bé tự chọn theo cao độ giọng gốc.
 
 Mọi lỗi chính đều được hiển thị bằng tiếng Việt, gồm nguyên nhân và hướng xử lý.
 
@@ -28,6 +30,29 @@ FFmpeg được cài tự động cùng gói Python `imageio-ffmpeg`, không b�
 5. Chọn video hoặc dán liên kết, sau đó bấm **DỊCH VIDEO**.
 
 Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu hơn bình thường.
+
+## Hai chế độ lồng tiếng v0.5.0
+
+### 1. Song ngữ
+
+- Giữ tiếng nói, nhạc và âm thanh bối cảnh Trung Quốc.
+- Hạ âm lượng nguồn còn 35% để giọng Việt nổi rõ.
+- Lồng thêm giọng Việt theo từng đoạn thời gian.
+
+### 2. Thay thoại
+
+- Dùng Demucs AI tách phần lời thoại khỏi nhạc và âm thanh bối cảnh.
+- Loại phần thoại Trung đã tách và giữ lại bản nền.
+- Lồng giọng Việt lên bản nền theo đúng timeline.
+- Lần dùng đầu cần mạng để tải mô hình tách giọng; bước này chậm hơn chế độ 1.
+
+Cả hai chế độ mặc định làm mờ mạnh 30% vùng đáy video rồi ghi phụ đề Việt có nền tối lên trên. Có thể bỏ chọn chức năng này trên giao diện nếu video không có phụ đề Trung.
+
+### Tự chọn chất giọng
+
+- Giọng gốc thấp: giọng nam Việt.
+- Giọng gốc trung hoặc cao: giọng nữ Việt.
+- Giọng gốc rất cao: preset em bé Việt, tăng cao độ và nhịp nói nhưng vẫn căn đúng timeline.
 
 ### Khi tải video Douyin
 
@@ -54,11 +79,11 @@ Nhấp đúp `TAO_FILE_EXE.bat`. Kết quả nằm trong:
 
 Nên dùng chế độ thư mục thay vì `onefile` vì thư viện AI có dung lượng lớn và khởi động chậm.
 
-## Phạm vi Sprint 1
+## Phạm vi hiện tại
 
 Đã làm: nhập link/file, tải video, nhận diện tiếng Trung, dịch tiếng Việt, tạo SRT, chèn phụ đề, tiến trình nền, kiểm tra Python/FFmpeg/thư viện/dung lượng/quyền ghi và lỗi tiếng Việt.
 
-Chưa làm trong Sprint 1: lồng tiếng Việt, tạo hook/caption, tài khoản, tìm trend tự động và đăng bài đa nền tảng.
+Chưa làm: clone chính xác giọng từng nhân vật, lip-sync khẩu hình, tạo hook/caption, tài khoản, tìm trend tự động và đăng bài đa nền tảng.
 
 ## Lưu ý bản quyền
 

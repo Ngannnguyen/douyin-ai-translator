@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .downloader import obtain_video
 from .logging_config import configure_logging
-from .media import burn_subtitles, extract_audio
+from .media import burn_subtitles, extract_audio, extract_audio_mix
 from .speech import transcribe
 from .subtitles import write_srt
 from .system import app_data_dir, choose_model, get_ffmpeg, validate_output_dir, validate_resources
@@ -30,13 +30,21 @@ def unique_path(path: Path) -> Path:
     raise RuntimeError(f"Không thể tạo tên tệp mới cho {path.name}")
 
 
-def process(source: str, output_dir: Path, progress=lambda percent, message: None) -> Result:
+def process(
+    source: str,
+    output_dir: Path,
+    progress=lambda percent, message: None,
+    hide_chinese_subtitles: bool = False,
+    audio_mode: str = "original",
+) -> Result:
+    if audio_mode not in {"original", "dual", "replace"}:
+        raise ValueError(f"Chế độ âm thanh không hợp lệ: {audio_mode}")
     data_dir = app_data_dir()
     logger = configure_logging(data_dir)
     progress(2, "Đang kiểm tra hệ thống...")
     get_ffmpeg()
     validate_output_dir(output_dir)
-    validate_resources()
+    validate_resources(6.0 if audio_mode == "replace" else 2.0)
     work_dir = Path(tempfile.mkdtemp(prefix="job_", dir=data_dir))
     try:
         logger.info("Bắt đầu xử lý nguồn: %s", source)
@@ -47,8 +55,33 @@ def process(source: str, output_dir: Path, progress=lambda percent, message: Non
         translated = translate_segments(segments, progress)
         stem = video.stem[:80] or "video"
         subtitle_temp = write_srt(translated, work_dir / "phu_de_vi.srt")
-        progress(82, "Đang chèn phụ đề vào video...")
-        rendered_temp = burn_subtitles(video, subtitle_temp, work_dir / "video_tieng_viet.mp4")
+        voice_audio = None
+        background_audio = None
+        if audio_mode in {"dual", "replace"}:
+            from .voice import create_vietnamese_voice
+
+            progress(76, "Đang tạo giọng lồng tiếng Việt...")
+            voice_audio = create_vietnamese_voice(
+                translated, audio, work_dir / "long_tieng_vi.wav", work_dir, progress
+            )
+        if audio_mode == "replace":
+            from .separation import separate_background
+
+            source_mix = extract_audio_mix(video, work_dir / "am_thanh_stereo.wav")
+            background_audio = separate_background(
+                source_mix,
+                work_dir / "nhac_va_boi_canh.wav",
+                progress,
+            )
+        progress(86, "Đang che phụ đề Trung và chèn phụ đề Việt..." if hide_chinese_subtitles else "Đang chèn phụ đề vào video...")
+        rendered_temp = burn_subtitles(
+            video,
+            subtitle_temp,
+            work_dir / "video_tieng_viet.mp4",
+            hide_original=hide_chinese_subtitles,
+            voice_audio=voice_audio,
+            background_audio=background_audio,
+        )
         subtitle = unique_path(output_dir / f"{stem}_phu_de_vi.srt")
         output_video = unique_path(output_dir / f"{stem}_tieng_viet.mp4")
         shutil.move(str(subtitle_temp), subtitle)
