@@ -1,5 +1,4 @@
-name: .github/workflows/cap_nhat_v040.yml
-
+name: Cap nhat tu dong v0.4.0
 on:
   push:
     branches:
