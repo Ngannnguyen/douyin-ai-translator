@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.2.1 — Sprint 1
+## Mốc hiện tại: v0.2.3 — Sprint 1
 
 Ngày cập nhật: 07/08/2026
 
@@ -18,6 +18,10 @@ Ngày cập nhật: 07/08/2026
 - Công cụ kiểm tra hệ điều hành, Python 64-bit, thư viện, FFmpeg, dung lượng và quyền ghi.
 - Script cài đặt, chạy ứng dụng, kiểm tra máy và tạo EXE trên Windows.
 - GitHub Actions build tự động trên máy Windows 64-bit.
+- Tự chuyển link trang cá nhân Douyin có `modal_id` hoặc `vid` thành link video trực tiếp.
+- Nhận cả đoạn văn bản chia sẻ Douyin và tự lấy URL đầu tiên.
+- Dùng cookie phiên Google Chrome khi Douyin yêu cầu xác minh trình duyệt.
+- Thêm mã lỗi DL002 bằng tiếng Việt và hướng dẫn làm mới cookie an toàn.
 
 ### Kết quả kiểm tra hiện tại
 

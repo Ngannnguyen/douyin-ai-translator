@@ -8,6 +8,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+from . import __version__
 from .errors import convert_error
 from .diagnostics import run_diagnostics
 from .pipeline import process
@@ -16,7 +17,7 @@ from .pipeline import process
 class TranslatorApp:
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title("Douyin AI Translator — Sprint 1")
+        self.root.title(f"Douyin AI Translator v{__version__} — Sprint 1")
         self.root.geometry("760x460")
         self.root.minsize(680, 420)
         self.events: queue.Queue = queue.Queue()
@@ -28,7 +29,7 @@ class TranslatorApp:
     def _build(self) -> None:
         frame = ttk.Frame(self.root, padding=22)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text="DOUYIN AI TRANSLATOR", font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        ttk.Label(frame, text=f"DOUYIN AI TRANSLATOR  v{__version__}", font=("Segoe UI", 20, "bold")).pack(anchor="w")
         ttk.Label(frame, text="Dịch tiếng Trung → tiếng Việt và chèn phụ đề tự động", font=("Segoe UI", 11)).pack(anchor="w", pady=(2, 22))
 
         ttk.Label(frame, text="Liên kết video hoặc tệp trong máy:").pack(anchor="w")

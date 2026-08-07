@@ -29,6 +29,13 @@ FFmpeg được cài tự động cùng gói Python `imageio-ffmpeg`, không b�
 
 Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu hơn bình thường.
 
+### Khi tải video Douyin
+
+- Mở Google Chrome, truy cập `douyin.com` và xem một video ít nhất một lần.
+- Đóng hoàn toàn Chrome rồi mới bấm **DỊCH VIDEO** trong ứng dụng.
+- Ứng dụng chỉ yêu cầu yt-dlp dùng phiên Chrome khi tải liên kết Douyin; không xuất hoặc lưu cookie thành tệp.
+- Tuyệt đối không gửi cookie trình duyệt cho người khác.
+
 ## Tạo file EXE
 
 Nhấp đúp `TAO_FILE_EXE.bat`. Kết quả nằm trong:

@@ -8,7 +8,7 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 call .venv\Scripts\activate.bat
-pyinstaller --noconfirm --clean --windowed --onedir --name Douyin_AI_Translator --collect-all faster_whisper --collect-all ctranslate2 app.py
+pyinstaller --noconfirm --clean --windowed --onedir --name Douyin_AI_Translator --collect-all faster_whisper --collect-all ctranslate2 --collect-all yt_dlp app.py
 if errorlevel 1 (
   echo [LOI] Tao EXE that bai. Xem thong bao phia tren.
   pause
