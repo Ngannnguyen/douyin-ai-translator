@@ -13,7 +13,11 @@ ERRORS = {
     "IN002": ("Không tìm thấy video", "Tệp video đã bị di chuyển hoặc xóa.", "Chọn lại đúng tệp video."),
     "IN003": ("Video vượt giới hạn an toàn", "Video quá lớn với bản hiện tại.", "Chia video thành phần nhỏ hơn."),
     "DL001": ("Không tải được video", "Liên kết sai, riêng tư, hết hạn hoặc nền tảng thay đổi.", "Kiểm tra liên kết hoặc chọn tệp video trong máy."),
-    "DL003": ("Douyin chặn tải trực tiếp", "Douyin yêu cầu phiên truy cập mới.", "Ứng dụng sẽ mở cửa sổ Douyin riêng."),
+    "DL003": (
+        "Douyin chặn tải trực tiếp",
+        "Douyin yêu cầu một phiên truy cập mới.",
+        "Ứng dụng sẽ tự mở một cửa sổ Douyin riêng và không đọc dữ liệu Chrome/Edge cá nhân.",
+    ),
     "DL004": ("Không tạo được phiên Douyin an toàn", "Douyin không tạo cookie cần thiết.", "Giữ cửa sổ Douyin riêng mở và hoàn tất xác minh nếu có."),
     "AU001": ("Không tách được âm thanh", "Video hỏng hoặc không có âm thanh.", "Kiểm tra video rồi thử lại."),
     "AI001": ("Không nhận diện được tiếng nói", "Âm thanh quá nhỏ hoặc mô hình chưa tải xong.", "Kiểm tra mạng và âm thanh."),
