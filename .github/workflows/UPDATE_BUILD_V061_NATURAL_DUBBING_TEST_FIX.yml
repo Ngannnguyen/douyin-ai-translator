@@ -1,4 +1,4 @@
-name: TEST WINDOWS v0.6.5
+name: TEST WINDOWS v0.7.0 REDESIGN
 
 on:
   push:
@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-v065-${{ github.ref }}
+  group: windows-v070-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -65,7 +65,7 @@ jobs:
         shell: pwsh
         env:
           DOUYIN_TEST_DUBBING: "1"
-          TORCH_HOME: ${{ runner.temp }}\torch-home-source-v065
+          TORCH_HOME: ${{ runner.temp }}\torch-home-source-v070
         run: |
           Remove-Item Env:DOUYIN_E2E_URL -ErrorAction SilentlyContinue
           python app.py --full-self-test
@@ -73,12 +73,12 @@ jobs:
           $report = Get-Content SELF_TEST_OK.txt -Raw
           @(
             "SELF TEST: DAT",
-            "Phien ban: 0.6.5",
+            "Phien ban: 0.7.0",
             "Giong Viet AI: DAT",
             "Tach thoai Trung: DAT",
-            "Xoa phu de Trung: DAT",
-            "Giong nhan vat co dinh: DAT",
-            "Dich rut gon theo thoi luong: DAT"
+            "Bang che phu de Trung: DAT",
+            "Giong ke vui tuoi: DAT",
+            "Dich giu tron nghia: DAT"
           ) | ForEach-Object {
             if ($report -notmatch [regex]::Escape($_)) { throw "Báo cáo thiếu kết quả: $_" }
           }
@@ -111,7 +111,7 @@ jobs:
         shell: pwsh
         env:
           DOUYIN_TEST_DUBBING: "1"
-          TORCH_HOME: ${{ runner.temp }}\torch-home-exe-v065
+          TORCH_HOME: ${{ runner.temp }}\torch-home-exe-v070
         run: |
           Remove-Item SELF_TEST_OK.txt -ErrorAction SilentlyContinue
           Remove-Item Env:DOUYIN_E2E_URL -ErrorAction SilentlyContinue
@@ -124,7 +124,7 @@ jobs:
           if (-not (Test-Path SELF_TEST_OK.txt)) { throw "EXE không tạo báo cáo kiểm thử." }
           $report = Get-Content SELF_TEST_OK.txt -Raw
           if ($report -notmatch "SELF TEST: DAT") { throw "EXE chưa đạt self-test." }
-          if ($report -notmatch "Phien ban: 0.6.5") { throw "EXE sai phiên bản." }
+          if ($report -notmatch "Phien ban: 0.7.0") { throw "EXE sai phiên bản." }
 
       - name: Nen ban Windows da test
         shell: pwsh
@@ -133,14 +133,14 @@ jobs:
           Copy-Item SELF_TEST_OK.txt dist/Douyin_AI_Translator/SELF_TEST_OK.txt
           Compress-Archive `
             -Path dist/Douyin_AI_Translator/* `
-            -DestinationPath Douyin_AI_Translator_Windows_v0.6.5_TESTED.zip `
+            -DestinationPath Douyin_AI_Translator_Windows_v0.7.0_REDONE_TESTED.zip `
             -Force
 
       - name: Dang bao cao khi loi
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: Bao_cao_loi_v0.6.5
+          name: Bao_cao_loi_v0.7.0
           path: SELF_TEST_OK.txt
           if-no-files-found: ignore
           retention-days: 7
@@ -148,7 +148,7 @@ jobs:
       - name: Dang file Windows khi tat ca vong dat
         uses: actions/upload-artifact@v5
         with:
-          name: Douyin_AI_Translator_Windows_v0.6.5_TESTED
-          path: Douyin_AI_Translator_Windows_v0.6.5_TESTED.zip
+          name: Douyin_AI_Translator_Windows_v0.7.0_REDONE_TESTED
+          path: Douyin_AI_Translator_Windows_v0.7.0_REDONE_TESTED.zip
           if-no-files-found: error
           retention-days: 30

@@ -286,13 +286,14 @@ def test_voice_tempo_filter_stays_in_ffmpeg_range():
     assert all(0.5 <= value <= 2.0 for value in values)
 
 
-def test_subtitle_filter_never_blurs_a_bottom_bar(tmp_path: Path):
+def test_subtitle_filter_uses_reliable_caption_panel(tmp_path: Path):
     subtitle = tmp_path / "phu de vi.srt"
     subtitle.write_text("", encoding="utf-8")
     video_filter = media.subtitle_video_filter(subtitle, hide_original=True)
     assert "crop=" not in video_filter
     assert "boxblur" not in video_filter
-    assert "drawbox=" not in video_filter
+    assert "drawbox=" in video_filter
+    assert "black@1.0" in video_filter
     assert "subtitles=" in video_filter
 
 

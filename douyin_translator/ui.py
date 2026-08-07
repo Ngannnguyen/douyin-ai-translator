@@ -63,7 +63,7 @@ class TranslatorApp:
         ).pack(anchor="w", pady=2)
         ttk.Checkbutton(
             mode_frame,
-            text="Xóa riêng nét phụ đề Trung và thay bằng phụ đề Việt (không tạo thanh mờ)",
+            text="Che kín phụ đề Trung và thay bằng bảng phụ đề Việt rõ ràng",
             variable=self.hide_chinese_subtitles,
         ).pack(anchor="w", pady=(5, 0))
 
@@ -78,7 +78,7 @@ class TranslatorApp:
         ttk.Button(action_row, text="Mở thư mục kết quả", command=self._open_output).pack(side="left", padx=10, ipady=7)
         ttk.Button(action_row, text="Kiểm tra máy", command=self._check_machine).pack(side="left", ipady=7)
         ttk.Label(frame, text="Nếu ứng dụng mở Chrome riêng: không cần đăng nhập, không đóng cửa sổ; ứng dụng sẽ tự đóng.", foreground="#555").pack(anchor="w", pady=(24, 0))
-        ttk.Label(frame, text="Mỗi nhân vật giữ một giọng cố định; câu dài được rút ý để khớp hình tự nhiên.", foreground="#666").pack(anchor="w", pady=(4, 0))
+        ttk.Label(frame, text="Một giọng nữ kể chuyện vui tươi; giữ trọn nghĩa, không tự cắt từ trong câu dịch.", foreground="#666").pack(anchor="w", pady=(4, 0))
 
     def _choose_video(self) -> None:
         selected = filedialog.askopenfilename(filetypes=[("Video", "*.mp4 *.mov *.mkv *.avi *.webm"), ("Tất cả tệp", "*.*")])

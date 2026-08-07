@@ -135,6 +135,31 @@ def fit_text_to_duration(text: str, duration: float) -> str:
     return shorten_text(text, budget)
 
 
+def merge_source_segments(segments: list[dict]) -> list[dict]:
+    """Gom mẩu Whisper ngắn thành câu có ngữ cảnh trước khi dịch."""
+    merged: list[dict] = []
+    for raw in segments:
+        item = {**raw, "text": str(raw.get("text", "")).strip()}
+        if not item["text"]:
+            continue
+        if not merged:
+            merged.append(item)
+            continue
+        previous = merged[-1]
+        gap = float(item["start"]) - float(previous["end"])
+        span = float(item["end"]) - float(previous["start"])
+        combined_length = len(str(previous["text"])) + len(item["text"])
+        # Tiếng Trung thường không có khoảng trắng. Chỉ tách khi có khoảng
+        # nghỉ rõ, câu đã đủ dài hoặc kết thúc bằng dấu câu.
+        ended = str(previous["text"]).rstrip().endswith(("。", "！", "？", "!", "?"))
+        if gap <= 0.55 and span <= 9.0 and combined_length <= 100 and not ended:
+            previous["end"] = item["end"]
+            previous["text"] = str(previous["text"]) + item["text"]
+        else:
+            merged.append(item)
+    return merged
+
+
 def translate_segments(segments: list[dict], progress) -> list[dict]:
     try:
         from deep_translator import GoogleTranslator
@@ -142,6 +167,7 @@ def translate_segments(segments: list[dict], progress) -> list[dict]:
         if not segments:
             raise RuntimeError("Không có đoạn tiếng Trung để dịch")
         translator = GoogleTranslator(source="zh-CN", target="vi")
+        segments = merge_source_segments(segments)
         total = len(segments)
         output = []
         for index, segment in enumerate(segments, start=1):
@@ -157,11 +183,11 @@ def translate_segments(segments: list[dict], progress) -> list[dict]:
             translated_text = str(translated or "").strip()
             if not translated_text:
                 raise RuntimeError(f"Đoạn {index}: {last_error}")
-            duration = max(0.25, float(segment["end"]) - float(segment["start"]))
-            natural_text = fit_text_to_duration(translated_text, duration)
             output.append({
                 **segment,
-                "text": natural_text,
+                # Không xóa từ để ép timeline. Câu đầy đủ sẽ được giọng kể
+                # căn lại ở bước lồng tiếng.
+                "text": _clean_text(translated_text),
                 "translation_full": translated_text,
             })
             progress(

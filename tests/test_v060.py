@@ -12,16 +12,17 @@ import douyin_translator.voice as voice_module
 from douyin_translator import separation
 from douyin_translator.speaker import assign_speakers
 from douyin_translator.subtitle_removal import detect_subtitle_mask, remove_subtitles_from_frame
-from douyin_translator.translation import fit_text_to_duration
+from douyin_translator.translation import merge_source_segments
 from douyin_translator.voice import tempo_filters
 
 
-def test_no_blur_bar_or_black_bar(tmp_path: Path):
+def test_caption_panel_hides_chinese_subtitle_area(tmp_path: Path):
     subtitle = tmp_path / "vi.srt"
     subtitle.write_text("", encoding="utf-8")
     value = media.subtitle_video_filter(subtitle, hide_original=True)
     assert "boxblur" not in value
-    assert "drawbox" not in value
+    assert "drawbox" in value
+    assert "black@1.0" in value
     assert "crop=" not in value
     assert "subtitles=" in value
 
@@ -67,24 +68,17 @@ def test_same_speaker_keeps_same_id_and_voice_profile(tmp_path: Path):
     assert profiles[assigned[1]["speaker_id"]].voice == "vi-VN-HoaiMyNeural"
 
 
-def test_long_translation_is_shortened_before_tts():
-    long_text = (
-        "Có thể nói rằng sản phẩm này thực sự rất tiện lợi và giúp chúng ta "
-        "tiết kiệm rất nhiều thời gian trong cuộc sống hàng ngày"
-    )
-    result = fit_text_to_duration(long_text, 2.0)
-    assert len(result.split()) <= 7
-    assert "tiết kiệm thời gian" in result.lower()
-    assert result.endswith(".")
+def test_short_whisper_fragments_are_merged_before_translation():
+    result = merge_source_segments([
+        {"start": 0.0, "end": 0.8, "text": "这是"},
+        {"start": 0.9, "end": 1.8, "text": "一个完整"},
+        {"start": 1.9, "end": 2.8, "text": "句子。"},
+    ])
+    assert len(result) == 1
+    assert result[0]["text"] == "这是一个完整句子。"
 
 
-def test_very_short_timeline_can_use_two_word_summary():
-    result = fit_text_to_duration("Xin chào, đây là giọng Việt.", 0.55)
-    assert 1 <= len(result.split()) <= 2
-    assert result.endswith(".")
-
-
-def test_tts_retries_with_shorter_meaning_instead_of_failing(tmp_path: Path, monkeypatch):
+def test_narrator_keeps_full_meaning_and_extends_timeline(tmp_path: Path, monkeypatch):
     rate = 16000
     timeline = np.arange(rate * 2, dtype=np.float32) / rate
     pcm = (np.sin(2 * np.pi * 120 * timeline) * 12000).astype("<i2")
@@ -95,15 +89,15 @@ def test_tts_retries_with_shorter_meaning_instead_of_failing(tmp_path: Path, mon
         target.setframerate(rate)
         target.writeframes(pcm.tobytes())
 
-    spoken = {"text": ""}
+    spoken = {"text": "", "profile": None}
 
     async def fake_save(text, profile, output, rate_delta=0):
         spoken["text"] = text
+        spoken["profile"] = profile
         output.write_bytes(b"mock")
 
     def fake_decode(mp3, output):
-        # Giả lập TTS có khoảng nghỉ: câu nhiều từ chắc chắn vượt timeline.
-        seconds = 0.35 + 0.55 * len(spoken["text"].split())
+        seconds = 2.4
         samples = np.zeros(round(24000 * seconds), dtype="<i2")
         with wave.open(str(output), "wb") as target:
             target.setnchannels(1)
@@ -125,10 +119,13 @@ def test_tts_retries_with_shorter_meaning_instead_of_failing(tmp_path: Path, mon
         segments, source, tmp_path / "voice.wav", tmp_path
     )
     assert result.is_file()
-    assert len(segments[0]["text"].split()) <= 1
+    assert segments[0]["text"] == "Xin chào, đây là giọng Việt."
+    assert segments[0]["end"] >= 2.4
+    assert spoken["profile"].voice == "vi-VN-HoaiMyNeural"
+    assert spoken["profile"].rate_percent == 8
 
 
-def test_one_second_timeline_never_cancels_the_whole_video(tmp_path: Path, monkeypatch):
+def test_all_segments_use_one_cheerful_narrator(tmp_path: Path, monkeypatch):
     rate = 16000
     source = tmp_path / "source.wav"
     with wave.open(str(source), "wb") as target:
@@ -140,10 +137,13 @@ def test_one_second_timeline_never_cancels_the_whole_video(tmp_path: Path, monke
     async def fake_save(text, profile, output, rate_delta=0):
         output.write_bytes(b"mock")
 
+    profiles = []
+    async def fake_save_with_profile(text, profile, output, rate_delta=0):
+        profiles.append(profile)
+        output.write_bytes(b"mock")
+
     def fake_decode(mp3, output):
-        # Mô phỏng đúng lỗi thực tế: dù chỉ còn một từ, Edge TTS vẫn tạo
-        # 1,4 giây âm thanh cho timeline 1,0 giây.
-        samples = np.zeros(round(24000 * 1.4), dtype="<i2")
+        samples = np.zeros(round(24000 * 0.8), dtype="<i2")
         with wave.open(str(output), "wb") as target:
             target.setnchannels(1)
             target.setsampwidth(2)
@@ -160,7 +160,7 @@ def test_one_second_timeline_never_cancels_the_whole_video(tmp_path: Path, monke
             target.writeframes(samples.tobytes())
         return output
 
-    monkeypatch.setattr(voice_module, "_save_tts", fake_save)
+    monkeypatch.setattr(voice_module, "_save_tts", fake_save_with_profile)
     monkeypatch.setattr(voice_module, "_decode_mp3", fake_decode)
     monkeypatch.setattr(voice_module, "_fit_decoded_clip", fake_fit)
     def fake_mix(clips, duration, output):
@@ -168,18 +168,24 @@ def test_one_second_timeline_never_cancels_the_whole_video(tmp_path: Path, monke
         return output
 
     monkeypatch.setattr(voice_module, "_mix_wav_clips", fake_mix)
-    segments = [{"start": 0.0, "end": 1.0, "text": "Xin chào, đây là giọng Việt."}]
+    segments = [
+        {"start": 0.0, "end": 1.0, "text": "Câu thứ nhất đầy đủ."},
+        {"start": 1.1, "end": 2.0, "text": "Câu thứ hai đầy đủ."},
+    ]
     result = voice_module.create_vietnamese_voice(
         segments, source, tmp_path / "voice.wav", tmp_path
     )
     assert result.is_file()
-    assert len(segments[0]["text"].split()) == 1
+    assert len(profiles) == 2
+    assert {item.voice for item in profiles} == {"vi-VN-HoaiMyNeural"}
+    assert {item.rate_percent for item in profiles} == {8}
+    assert {item.pitch_hz for item in profiles} == {8}
 
 
 def test_tts_speed_never_becomes_machine_like():
     for source, target in [(8, 1), (1, 8), (2.1, 2.0)]:
         value = float(tempo_filters(source, target).split("=")[1])
-        assert 0.92 <= value <= 1.12
+        assert 0.92 <= value <= 1.20
 
 
 def test_timeline_validation_rejects_overflowing_voice(tmp_path: Path):
