@@ -58,7 +58,7 @@ jobs:
             --collect-all yt_dlp `
             app.py
 
-      - name: Chay thu file EXE tren Windows
+              - name: Chay thu file EXE tren Windows
         shell: pwsh
         run: |
           Remove-Item SELF_TEST_OK.txt -ErrorAction SilentlyContinue
@@ -67,10 +67,18 @@ jobs:
             -ArgumentList "--full-self-test" `
             -PassThru `
             -Wait
-          if ($process.ExitCode -ne 0) { throw "EXE self-test that bai: $($process.ExitCode)" }
-          if (-not (Test-Path SELF_TEST_OK.txt)) { throw "EXE khong tao bao cao self-test" }
-          Get-Content SELF_TEST_OK.txt
 
+          if (Test-Path SELF_TEST_OK.txt) {
+            Get-Content SELF_TEST_OK.txt
+          }
+
+          if ($process.ExitCode -ne 0) {
+            throw "EXE self-test that bai: $($process.ExitCode)"
+          }
+
+          if (-not (Test-Path SELF_TEST_OK.txt)) {
+            throw "EXE khong tao bao cao self-test"
+          }
       - name: Them huong dan vao ban phat hanh
         shell: pwsh
         run: |
