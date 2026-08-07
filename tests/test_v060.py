@@ -5,6 +5,7 @@ import wave
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 import douyin_translator.media as media
 import douyin_translator.voice as voice_module
@@ -131,6 +132,18 @@ def test_tts_speed_never_becomes_machine_like():
     for source, target in [(8, 1), (1, 8), (2.1, 2.0)]:
         value = float(tempo_filters(source, target).split("=")[1])
         assert 0.92 <= value <= 1.12
+
+
+def test_timeline_validation_rejects_overflowing_voice(tmp_path: Path):
+    path = tmp_path / "voice.wav"
+    samples = np.zeros(24000 * 2, dtype="<i2")
+    with wave.open(str(path), "wb") as target:
+        target.setnchannels(1)
+        target.setsampwidth(2)
+        target.setframerate(24000)
+        target.writeframes(samples.tobytes())
+    with pytest.raises(ValueError, match="vượt timeline"):
+        voice_module._validate_timeline_clip(path, 1.0, 3)
 
 
 def test_windowed_exe_demucs_download_has_writable_streams(monkeypatch):
