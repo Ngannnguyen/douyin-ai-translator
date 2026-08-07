@@ -31,10 +31,12 @@ Lần chạy nhận diện đầu tiên sẽ tải mô hình Whisper nên lâu h
 
 ### Khi tải video Douyin
 
-- Bản v0.4.0 không đọc hồ sơ hoặc cơ sở dữ liệu cookie của Chrome/Edge cá nhân.
+- Bản v0.4.1 không đọc hồ sơ hoặc cơ sở dữ liệu cookie của Chrome/Edge cá nhân.
 - Liên kết công khai vẫn được thử tải trực tiếp với thời gian chờ và số lần thử giới hạn.
 - Nếu Douyin yêu cầu cookie, ứng dụng mở một hồ sơ trình duyệt tạm riêng, lấy cookie của đúng phiên đó qua cổng nội bộ rồi tải lại.
+- Khi cửa sổ riêng xuất hiện, không cần đăng nhập và không đóng cửa sổ. Ứng dụng sẽ tự đóng ngay sau khi lấy được phiên; chỉ hoàn tất xác minh nếu Douyin thực sự yêu cầu.
 - Ứng dụng chỉ đóng cửa sổ tạm do chính nó tạo, không tắt Chrome/Edge đang dùng và không thay đổi cài đặt Windows.
+- v0.4.1 theo dõi trực tiếp cổng DevTools của cửa sổ riêng, không còn nhầm việc tiến trình khởi động Chrome kết thúc là người dùng đã đóng cửa sổ.
 
 ### Giới hạn tài nguyên an toàn
 

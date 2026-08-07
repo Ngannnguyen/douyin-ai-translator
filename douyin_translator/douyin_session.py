@@ -158,15 +158,18 @@ def create_douyin_session(target_url: str, progress=lambda percent, message: Non
         creationflags=creationflags,
     )
     try:
-        progress(10, "Đang tạo phiên Douyin riêng, không dùng dữ liệu Chrome cá nhân...")
+        progress(10, "Đã mở Chrome riêng: không đăng nhập, không tắt; ứng dụng sẽ tự đóng...")
         info = _devtools_info(port)
         user_agent = str(info.get("User-Agent") or info.get("userAgent") or "")
         deadline = time.monotonic() + 120
         last_names: set[str] = set()
         while time.monotonic() < deadline:
-            if process.poll() is not None:
-                raise RuntimeError("Cửa sổ phiên Douyin riêng đã đóng trước khi hoàn tất")
             try:
+                # Trên Windows, chrome.exe có thể bàn giao cửa sổ cho tiến trình
+                # con rồi tiến trình Popen ban đầu kết thúc ngay. Vì vậy không
+                # dùng process.poll() để kết luận cửa sổ đã đóng; phiên còn sống
+                # hay không phải được xác định bằng cổng DevTools riêng.
+                _devtools_info(port, timeout_seconds=1.0)
                 result = _cdp_command(_page_websocket(port), "Network.getAllCookies")
                 cookies = list(result.get("cookies") or [])
                 douyin_cookies = [
@@ -179,7 +182,7 @@ def create_douyin_session(target_url: str, progress=lambda percent, message: Non
                     return DouyinSession(cookie_file=cookie_file, user_agent=user_agent)
             except Exception:
                 pass
-            progress(12, "Đang chờ Douyin tạo phiên an toàn trong cửa sổ riêng...")
+            progress(12, "Giữ nguyên cửa sổ Chrome riêng; không cần đăng nhập, ứng dụng sẽ tự đóng...")
             time.sleep(2)
         raise AppError("DL004", "Không nhận được cookie Douyin sau 120 giây; cookie thấy được: " + ", ".join(sorted(last_names)))
     except AppError:
@@ -187,11 +190,12 @@ def create_douyin_session(target_url: str, progress=lambda percent, message: Non
     except Exception as exc:
         raise AppError("DL004", str(exc)) from exc
     finally:
-        if process.poll() is None:
-            try:
-                _cdp_command(_page_websocket(port), "Browser.close")
-            except Exception:
-                pass
+        # Luôn đóng đúng phiên qua DevTools. Kể cả launcher process đã thoát,
+        # tiến trình Chrome con và cửa sổ riêng vẫn có thể đang hoạt động.
+        try:
+            _cdp_command(_page_websocket(port), "Browser.close")
+        except Exception:
+            pass
         if process.poll() is None:
             process.terminate()
             try:

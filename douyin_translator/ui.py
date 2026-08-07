@@ -54,7 +54,7 @@ class TranslatorApp:
         self.start_button.pack(side="left", ipadx=20, ipady=7)
         ttk.Button(action_row, text="Mở thư mục kết quả", command=self._open_output).pack(side="left", padx=10, ipady=7)
         ttk.Button(action_row, text="Kiểm tra máy", command=self._check_machine).pack(side="left", ipady=7)
-        ttk.Label(frame, text="Chế độ an toàn: không đọc hồ sơ Chrome/Edge cá nhân và không yêu cầu đóng trình duyệt.", foreground="#555").pack(anchor="w", pady=(24, 0))
+        ttk.Label(frame, text="Nếu ứng dụng mở Chrome riêng: không cần đăng nhập, không đóng cửa sổ; ứng dụng sẽ tự đóng.", foreground="#555").pack(anchor="w", pady=(24, 0))
         ttk.Label(frame, text="Lần đầu nhận diện sẽ tải mô hình AI. Chỉ sử dụng video bạn có quyền xử lý.", foreground="#666").pack(anchor="w", pady=(4, 0))
 
     def _choose_video(self) -> None:

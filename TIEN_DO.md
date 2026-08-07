@@ -1,6 +1,6 @@
 # Tiến độ dự án
 
-## Mốc hiện tại: v0.4.0 Isolated Douyin Session — Sprint 1
+## Mốc hiện tại: v0.4.1 Isolated Douyin Session — Sprint 1
 
 Ngày cập nhật: 07/08/2026
 
@@ -27,6 +27,8 @@ Ngày cập nhật: 07/08/2026
 - Kiểm tra RAM khả dụng trước khi xử lý và dừng an toàn nếu còn dưới 2 GB.
 - Giới hạn video tối đa 2 GB, không ghi đè kết quả cũ và dọn tệp tạm khi lỗi.
 - Thêm self-test tạo video mẫu, tách âm thanh và chèn phụ đề ngay trên file EXE Windows.
+- Sửa lỗi Windows: tiến trình khởi động Chrome có thể kết thúc sau khi bàn giao cho tiến trình con; ứng dụng nay theo dõi phiên DevTools thật và chỉ tự đóng đúng cửa sổ tạm.
+- Thêm kiểm thử hồi quy mô phỏng chính xác trường hợp launcher Chrome đã thoát nhưng cửa sổ Douyin vẫn hoạt động.
 
 ### Kết quả kiểm tra hiện tại
 
@@ -35,11 +37,11 @@ Ngày cập nhật: 07/08/2026
 - Kiểm tra đầy đủ nội dung lỗi tiếng Việt: đạt.
 - Thử tạo video ngắn và chèn phụ đề qua đường dẫn có dấu/có khoảng trắng: đạt.
 - Kiểm tra bản v0.3.0 trực tiếp trên Windows Server 2022: 11 unit test, FFmpeg, Whisper và dịch Trung–Việt đều đạt.
-- Bản v0.4.0 sẽ chỉ được phát hành khi GitHub Actions tải được link Douyin mẫu và tạo MP4 + SRT thành công.
+- v0.4.0 đã đạt E2E trên GitHub Actions nhưng phát hiện lỗi riêng trên Chrome Windows thực tế; v0.4.1 có thêm kiểm thử hồi quy cho lỗi launcher bàn giao tiến trình.
 
 ### Phần tiếp theo của Sprint 1
 
-1. Đưa mã nguồn v0.4.0 lên repository.
+1. Đưa mã nguồn v0.4.1 lên repository.
 2. Chạy E2E trên Windows với link Douyin mẫu đã cung cấp.
 3. Kiểm tra file video tải về, SRT và MP4 đã chèn phụ đề.
 4. Chỉ tải artifact và chốt Release Candidate khi tất cả bước đạt.
@@ -55,4 +57,4 @@ Ngày cập nhật: 07/08/2026
 
 - Repository: `https://github.com/Ngannnguyen/douyin-ai-translator`.
 - Bản v0.3.0 đã build và self-test Windows thành công nhưng chưa đạt tải Douyin thật.
-- Không phát hành v0.4.0 cho đến khi E2E link Douyin thật đạt.
+- Chỉ phát hành v0.4.1 sau khi E2E link Douyin thật đạt và người dùng xác nhận cửa sổ Chrome riêng hoạt động đúng trên Windows 11.

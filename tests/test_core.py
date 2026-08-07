@@ -164,6 +164,56 @@ def test_douyin_failure_retries_with_isolated_session(tmp_path: Path, monkeypatc
     assert attempts[1][2] == "Isolated Browser"
 
 
+def test_session_survives_when_windows_launcher_exits(tmp_path: Path, monkeypatch):
+    import douyin_translator.douyin_session as session_module
+
+    class DetachedLauncher:
+        def poll(self):
+            return 0
+
+    commands = []
+    monkeypatch.setattr(session_module, "find_browser", lambda: Path("chrome.exe"))
+    monkeypatch.setattr(session_module, "app_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(session_module, "_free_local_port", lambda: 9229)
+    monkeypatch.setattr(
+        session_module.subprocess,
+        "Popen",
+        lambda *args, **kwargs: DetachedLauncher(),
+    )
+    monkeypatch.setattr(
+        session_module,
+        "_devtools_info",
+        lambda port, timeout_seconds=20.0: {"User-Agent": "Windows Chrome"},
+    )
+    monkeypatch.setattr(session_module, "_page_websocket", lambda port: "ws://127.0.0.1:9229/page")
+
+    def fake_cdp(url, method):
+        commands.append(method)
+        if method == "Network.getAllCookies":
+            return {
+                "cookies": [{
+                    "domain": ".douyin.com",
+                    "path": "/",
+                    "secure": True,
+                    "expires": 1999999999,
+                    "name": "ttwid",
+                    "value": "detached-launcher-session",
+                }]
+            }
+        return {}
+
+    monkeypatch.setattr(session_module, "_cdp_command", fake_cdp)
+    session = session_module.create_douyin_session(
+        "https://v.douyin.com/example/",
+        lambda percent, message: None,
+    )
+
+    assert session.user_agent == "Windows Chrome"
+    assert session.cookie_file.is_file()
+    assert "Network.getAllCookies" in commands
+    assert "Browser.close" in commands
+
+
 def test_unique_path_does_not_overwrite(tmp_path: Path):
     existing = tmp_path / "ket_qua.mp4"
     existing.write_bytes(b"old")
