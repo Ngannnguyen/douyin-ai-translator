@@ -11,7 +11,7 @@ ERRORS = {
     "IN001": ("Nguồn video không hợp lệ", "Bạn chưa chọn tệp video hoặc nhập liên kết.", "Chọn video trong máy hoặc dán một liên kết hợp lệ."),
     "IN002": ("Không tìm thấy video", "Tệp video đã bị di chuyển, đổi tên hoặc xóa.", "Chọn lại đúng tệp video trên máy."),
     "DL001": ("Không tải được video", "Liên kết có thể sai, riêng tư, hết hạn hoặc nền tảng đã thay đổi.", "Kiểm tra liên kết; nếu vẫn lỗi, hãy tải video hợp pháp về máy rồi chọn tệp trực tiếp."),
-    "DL002": ("Douyin chưa cấp phiên tải video", "Google Chrome chưa có cookie Douyin mới hoặc trình duyệt đang khóa dữ liệu phiên.", "Mở Chrome, vào douyin.com và xem một video; sau đó đóng hoàn toàn Chrome rồi bấm DỊCH VIDEO lại. Bạn không cần gửi cookie cho bất kỳ ai."),
+    "DL002": ("Douyin chưa cấp phiên tải video", "Microsoft Edge chưa có cookie Douyin mới hoặc trình duyệt đang khóa dữ liệu phiên.", "Mở Edge, vào douyin.com và xem một video; sau đó đóng hoàn toàn Edge rồi bấm DỊCH VIDEO lại. Bạn vẫn có thể để Chrome mở và không cần gửi cookie cho bất kỳ ai."),
     "AU001": ("Không tách được âm thanh", "Video hỏng, không có luồng âm thanh hoặc định dạng chưa được hỗ trợ.", "Thử mở video để kiểm tra hoặc chuyển video sang MP4 rồi chạy lại."),
     "AI001": ("Không nhận diện được tiếng nói", "Video có thể không có lời nói, âm quá nhỏ hoặc mô hình AI chưa tải xong.", "Kiểm tra âm thanh, kết nối Internet và thử lại với mô hình nhỏ hơn."),
     "TR001": ("Không dịch được nội dung", "Dịch vụ dịch đang gián đoạn hoặc mất kết nối Internet.", "Kiểm tra mạng rồi thử lại sau ít phút."),

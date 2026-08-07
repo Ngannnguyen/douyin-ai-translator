@@ -53,10 +53,11 @@ def download_options(source: str, output_template: str) -> dict:
         "quiet": True,
         "no_warnings": True,
     }
-    # Douyin thường yêu cầu cookie mới của một trình duyệt thật. Cookie chỉ được
-    # yt-dlp đọc trong lúc tải và không được ứng dụng ghi ra tệp hay hiển thị.
+    # Douyin thường yêu cầu cookie mới của một trình duyệt thật. Dùng Edge để
+    # người dùng vẫn có thể mở Chrome làm việc trong lúc ứng dụng tải video.
+    # Cookie chỉ được yt-dlp đọc trong lúc tải, không ghi ra tệp hay hiển thị.
     if is_douyin_url(source):
-        options["cookiesfrombrowser"] = ("chrome",)
+        options["cookiesfrombrowser"] = ("edge",)
     return options
 
 
@@ -71,7 +72,7 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
         return path.resolve()
 
     if is_douyin_url(source):
-        progress(8, "Đang tải video Douyin bằng phiên Google Chrome...")
+        progress(8, "Đang tải video Douyin bằng phiên Microsoft Edge...")
     else:
         progress(8, "Đang tải video từ liên kết...")
     try:
@@ -94,7 +95,7 @@ def obtain_video(source: str, work_dir: Path, progress) -> Path:
         detail = str(exc)
         if is_douyin_url(source) and any(
             marker in detail.lower()
-            for marker in ("cookie", "dpapi", "decrypt", "chrome")
+            for marker in ("cookie", "dpapi", "decrypt", "edge")
         ):
             raise AppError("DL002", detail) from exc
         raise AppError("DL001", str(exc)) from exc

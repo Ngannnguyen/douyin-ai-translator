@@ -49,12 +49,12 @@ def test_extract_url_from_share_text():
     assert extract_url(shared) == "https://v.douyin.com/abc123/"
 
 
-def test_douyin_uses_chrome_cookies():
+def test_douyin_uses_edge_cookies():
     options = download_options(
         "https://www.douyin.com/video/7552467869231254847",
         "video_goc.%(ext)s",
     )
-    assert options["cookiesfrombrowser"] == ("chrome",)
+    assert options["cookiesfrombrowser"] == ("edge",)
 
 
 def test_other_sites_do_not_read_browser_cookies():
@@ -64,5 +64,5 @@ def test_other_sites_do_not_read_browser_cookies():
 
 def test_cookie_error_is_in_vietnamese():
     message = AppError("DL002", "Fresh cookies are needed").user_message
-    assert "Google Chrome" in message
-    assert "đóng hoàn toàn Chrome" in message
+    assert "Microsoft Edge" in message
+    assert "đóng hoàn toàn Edge" in message
